@@ -1,0 +1,38 @@
+.visualization-container {
+    height: 600px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.item-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.form-control:disabled, 
+.form-control[readonly] {
+    background-color: #e9ecef;
+}
+
+.item-card {
+    border-left: 4px solid;
+    margin-bottom: 10px;
+}
+
+.status-2 { border-left-color: #ffc107; }
+.status-3 { border-left-color: #17a2b8; }
+.status-4 { border-left-color: #28a745; }
+
+.item-card.selected {
+    border-width: 2px;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.efficiency-progress {
+    height: 10px;
+}
+
+.efficiency-progress .progress-bar {
+    transition: width 0.3s ease-in-out;
+}

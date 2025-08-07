@@ -19,18 +19,19 @@ class UploadController extends Controller
     public function upload(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls'
+            'excel_file' => 'required|file|mimes:xlsx,xls,csv'
         ]);
     
         // Simpan file fisik
-        $path = $request->file('file')->store('uploads');
-        $filename = $request->file('file')->getClientOriginalName();
+        $path = $request->file('excel_file')->store('uploads');
+        $filename = $request->file('excel_file')->getClientOriginalName();
     
         // Baca isi file
-        $data = Excel::toCollection(new CargoImport, $request->file('file'))->first();
+        $data = Excel::toCollection(new CargoImport, $request->file('excel_file'))->first();
     
         $volumeTruk = 16;
         $totalVolume = 0;
+        $items = [];
     
         $upload = Upload::create([
             'filename' => $filename,
@@ -56,7 +57,7 @@ class UploadController extends Controller
                 $totalVolume += $volume;
             }
         
-            Box::create([
+            $box = Box::create([
                 'upload_id' => $upload->id,
                 'cargo_destination' => $cargoDestination,
                 'customer_code' => $customerCode,
@@ -67,16 +68,36 @@ class UploadController extends Controller
                 'status' => $status,
                 'volume' => $volume,
             ]);
+
+            // Convert to meters for frontend
+            $items[] = [
+                'id' => $box->id,
+                'cargo_destination' => $cargoDestination,
+                'customer_code' => $customerCode,
+                'customer_name' => $customerName,
+                'panjang' => $p / 1000, // Convert to meters
+                'lebar' => $l / 1000,   // Convert to meters
+                'tinggi' => $t / 1000,  // Convert to meters
+                'status' => $status,
+                'volume' => $volume,
+            ];
         }
         
-        
-    
         $ratio = $totalVolume / $volumeTruk;
         $upload->update([
             'total_volume' => $totalVolume,
             'ratio' => $ratio,
             'status' => $ratio >= 0.8 ? 'Siap Dikirim' : 'Belum Siap'
         ]);
+
+        // Check if request is AJAX (from packing page)
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'items' => $items,
+                'message' => 'Excel data loaded successfully'
+            ]);
+        }
     
         return redirect()->route('result', $upload->id);
     }
