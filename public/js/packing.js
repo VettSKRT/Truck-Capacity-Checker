@@ -32,7 +32,9 @@
     const CUBE_J = [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3];
     const CUBE_K = [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6];
 
-    const state = { uploadId: null, mode: 'tetris', seq: 0, data: null, view: 'iso', file: null };
+    const clone = (o) => JSON.parse(JSON.stringify(o));
+    const state = { uploadId: null, mode: 'tetris', seq: 0, data: null, view: 'iso', file: null, cam: null, plotBound: false };
+    state.cam = clone(CAMERAS.iso);
 
     const el = {
         form: $('#checkForm'),
@@ -158,6 +160,12 @@
         if (!state.file) return;
 
         clearMessages();
+        // Hapus hasil lama agar tidak tertukar dengan hasil file yang baru (atau error-nya)
+        state.uploadId = null;
+        state.data = null;
+        state.seq++;
+        el.results.hidden = true;
+        el.empty.hidden = false;
         setBusy(true);
         try {
             const fd = new FormData();
@@ -400,7 +408,7 @@
             showlegend: false,
             scene: {
                 aspectmode: 'data',
-                camera: CAMERAS[state.view],
+                camera: state.cam,
                 xaxis: { title: { text: 'Panjang (m)' }, backgroundcolor: '#f6f8fc', gridcolor: '#d3dae6' },
                 yaxis: { title: { text: 'Lebar (m)' }, backgroundcolor: '#f6f8fc', gridcolor: '#d3dae6' },
                 zaxis: { title: { text: 'Tinggi (m)' }, backgroundcolor: '#f6f8fc', gridcolor: '#d3dae6' },
@@ -415,16 +423,43 @@
         if (isRatio) return;
 
         renderLegend(data.items);
-        Plotly.react('plot', buildTraces(data), plotLayout(), { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'] });
+        Plotly.react('plot', buildTraces(data), plotLayout(), { responsive: true, displaylogo: false, displayModeBar: false });
+        bindPlotGuards();
+    }
+
+    function applyCamera() {
+        if (state.data && state.data.mode === 'tetris') {
+            Plotly.relayout('plot', { 'scene.camera': state.cam });
+        }
     }
 
     $$('#viewBar [data-view]').forEach((btn) => btn.addEventListener('click', () => {
         state.view = btn.dataset.view;
+        state.cam = clone(CAMERAS[state.view]);
         $$('#viewBar [data-view]').forEach((b) => b.classList.toggle('is-on', b === btn));
-        if (state.data && state.data.mode === 'tetris') {
-            Plotly.relayout('plot', { 'scene.camera': CAMERAS[state.view] });
-        }
+        applyCamera();
     }));
+
+    // Perbesar / perkecil lewat tombol (gulir biasa dipakai untuk menggulir halaman)
+    $$('#viewBar [data-zoom]').forEach((btn) => btn.addEventListener('click', () => {
+        const f = btn.dataset.zoom === 'in' ? 0.8 : 1.25;
+        const e = state.cam.eye;
+        const len = Math.hypot(e.x, e.y, e.z) * f;
+        if (len < 0.8 || len > 6) return; // batas wajar
+        state.cam.eye = { x: e.x * f, y: e.y * f, z: e.z * f };
+        applyCamera();
+    }));
+
+    // Cegah gulir halaman memperbesar grafik tanpa sengaja; Ctrl + gulir tetap bisa zoom
+    function bindPlotGuards() {
+        if (state.plotBound) return;
+        const plot = $('#plot');
+        plot.addEventListener('wheel', (e) => { if (!e.ctrlKey) e.stopPropagation(); }, true);
+        plot.on('plotly_relayout', (ev) => {
+            if (ev && ev['scene.camera']) state.cam = clone(ev['scene.camera']);
+        });
+        state.plotBound = true;
+    }
 
     // Grafik di tab tersembunyi tidak punya lebar; sesuaikan saat tab dibuka
     document.addEventListener('shown.bs.tab', (e) => {

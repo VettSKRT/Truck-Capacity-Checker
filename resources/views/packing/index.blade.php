@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Cek Kapasitas')
+@section('title', 'Beranda')
 
 @section('content')
 @php
@@ -141,7 +141,7 @@
         </div>
 
         <div class="tab-content">
-            <div class="tab-pane fade show active pane" id="pane3d" role="tabpanel" aria-labelledby="tab3d" tabindex="0">
+            <div class="tab-pane show active pane" id="pane3d" role="tabpanel" aria-labelledby="tab3d" tabindex="0">
                 <div id="view3d">
                     <div class="view-bar" id="viewBar">
                         <span class="view-bar__label">Sudut pandang:</span>
@@ -149,10 +149,13 @@
                         <button type="button" class="chip-btn" data-view="side">Samping</button>
                         <button type="button" class="chip-btn" data-view="top">Atas</button>
                         <button type="button" class="chip-btn" data-view="end">Ujung</button>
+                        <span class="view-bar__label ms-2">Ukuran:</span>
+                        <button type="button" class="chip-btn" data-zoom="in" aria-label="Perbesar tampilan"><i class="bi bi-zoom-in" aria-hidden="true"></i> Perbesar</button>
+                        <button type="button" class="chip-btn" data-zoom="out" aria-label="Perkecil tampilan"><i class="bi bi-zoom-out" aria-hidden="true"></i> Perkecil</button>
                     </div>
                     <div class="legend" id="legend" aria-label="Keterangan warna jalur"></div>
                     <div id="plot" role="img" aria-label="Susunan karton di dalam kendaraan"></div>
-                    <p class="pane-note">Geser untuk memutar, gulir untuk memperbesar. Setiap warna adalah satu jalur pengiriman.</p>
+                    <p class="pane-note">Geser dengan mouse untuk memutar. Untuk memperbesar, pakai tombol Perbesar atau tahan Ctrl sambil menggulir. Setiap warna adalah satu jalur pengiriman.</p>
                 </div>
                 <div class="plot-empty" id="ratioNote" hidden>
                     <i class="bi bi-info-circle" aria-hidden="true"></i>
@@ -161,7 +164,7 @@
                 </div>
             </div>
 
-            <div class="tab-pane fade pane" id="paneDealer" role="tabpanel" aria-labelledby="tabDealer" tabindex="0">
+            <div class="tab-pane pane" id="paneDealer" role="tabpanel" aria-labelledby="tabDealer" tabindex="0">
                 <div class="table-wrap">
                     <table class="table-clean">
                         <thead>
@@ -176,7 +179,7 @@
                 </div>
             </div>
 
-            <div class="tab-pane fade pane" id="paneUnloaded" role="tabpanel" aria-labelledby="tabUnloaded" tabindex="0">
+            <div class="tab-pane pane" id="paneUnloaded" role="tabpanel" aria-labelledby="tabUnloaded" tabindex="0">
                 <div id="unloadedEmpty" class="empty-state" hidden>
                     <i class="bi bi-check-circle" aria-hidden="true"></i>
                     Semua karton termuat. Tidak ada yang tertinggal.
