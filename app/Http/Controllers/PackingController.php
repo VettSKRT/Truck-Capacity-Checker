@@ -3,14 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Box;
+use App\Models\Upload;
+use App\Models\Vehicle;
+use App\Services\PackingService;
 use Illuminate\Http\Request;
 
 class PackingController extends Controller
 {
-    // Dimensi container dalam meter
-    private const LENGTH = 16;
-    private const WIDTH = 1;
-    private const HEIGHT = 1;
+    /** Batas jumlah karton per permintaan agar proses tetap cepat. */
+    private const MAX_UNITS = 10000;
 
     public function index()
     {
@@ -18,81 +19,94 @@ class PackingController extends Controller
     }
 
     /**
-     * Susun box milik sebuah upload ke dalam container.
-     * Semua dimensi dikonversi dari mm (database) ke meter.
-     * Algoritma shelf: isi sepanjang X, lalu pindah baris (Y), lalu naik lapisan (Z).
+     * Susun muatan sebuah upload ke dalam kendaraan.
+     *
+     * Parameter:
+     *  - upload_id  (wajib)
+     *  - mode       ratio | tetris (default tetris)
+     *  - vehicle    kode kendaraan (default: kendaraan pada upload)
+     *  - only_ready true (default) = hanya Status 4 / Cargo Ready; false = semua status
+     *
+     * Semua dimensi pada respons dalam METER.
      */
-    public function optimize(Request $request)
+    public function optimize(Request $request, PackingService $packing)
     {
-        $request->validate(['upload_id' => 'required|integer|exists:uploads,id']);
+        $data = $request->validate([
+            'upload_id' => 'required|integer|exists:uploads,id',
+            'mode' => 'nullable|in:' . implode(',', PackingService::MODES),
+            'vehicle' => 'nullable|string|exists:vehicles,code',
+            'only_ready' => 'nullable|boolean',
+        ]);
 
-        $boxes = Box::where('upload_id', $request->upload_id)
-            ->orderBy('status', 'desc')
-            ->orderBy('volume', 'desc')
-            ->get();
+        $upload = Upload::with('vehicle')->findOrFail($data['upload_id']);
+        $vehicle = isset($data['vehicle'])
+            ? Vehicle::where('code', $data['vehicle'])->first()
+            : ($upload->vehicle ?? Vehicle::where('code', config('logistics.default_vehicle'))->first());
 
-        $x = $y = $z = 0.0;
-        $rowDepth = 0.0;   // lebar terbesar pada baris saat ini
-        $layerHeight = 0.0; // tinggi terbesar pada lapisan saat ini
-        $packed = [];
-        $skipped = [];
-        $eps = 1e-9;
-
-        // Satu baris Box bisa berisi banyak karton identik (box_count): perluas jadi satuan karton
-        $units = $boxes->flatMap(fn ($box) => array_fill(0, max(1, $box->box_count), $box));
-
-        foreach ($units as $box) {
-            $l = $box->panjang / 1000;
-            $w = $box->lebar / 1000;
-            $h = $box->tinggi / 1000;
-
-            // Ukuran melebihi container -> pasti tidak muat
-            if ($l > self::LENGTH + $eps || $w > self::WIDTH + $eps || $h > self::HEIGHT + $eps) {
-                $skipped[] = $box->id;
-                continue;
-            }
-
-            // Pindah baris jika melewati panjang container
-            if ($x + $l > self::LENGTH + $eps) {
-                $x = 0.0;
-                $y += $rowDepth;
-                $rowDepth = 0.0;
-            }
-            // Pindah lapisan jika melewati lebar container
-            if ($y + $w > self::WIDTH + $eps) {
-                $x = 0.0;
-                $y = 0.0;
-                $z += $layerHeight;
-                $rowDepth = 0.0;
-                $layerHeight = 0.0;
-            }
-            // Melewati tinggi container -> tidak muat
-            if ($z + $h > self::HEIGHT + $eps) {
-                $skipped[] = $box->id;
-                continue;
-            }
-
-            $packed[] = [
-                'id' => $box->id,
-                'x' => $x,
-                'y' => $y,
-                'z' => $z,
-                'length' => $l,
-                'width' => $w,
-                'height' => $h,
-                'status' => $box->status,
-                'volume' => $box->unit_volume,
-            ];
-
-            $x += $l;
-            $rowDepth = max($rowDepth, $w);
-            $layerHeight = max($layerHeight, $h);
+        if (! $vehicle) {
+            return response()->json(['success' => false, 'message' => 'Data kendaraan belum ada. Jalankan: php artisan db:seed'], 422);
         }
+
+        $query = Box::where('upload_id', $upload->id)->orderBy('id');
+        if ($request->boolean('only_ready', true)) {
+            $query->where('status', config('logistics.cargo_ready_status', 4));
+        }
+
+        $units = $packing->unitsFromBoxes($query->get());
+
+        if (count($units) > self::MAX_UNITS) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jumlah karton (' . count($units) . ') melebihi batas ' . self::MAX_UNITS . ' per permintaan.',
+            ], 422);
+        }
+
+        $result = $packing->pack($units, [
+            'length_mm' => $vehicle->length_mm,
+            'width_mm' => $vehicle->width_mm,
+            'height_mm' => $vehicle->height_mm,
+            'max_payload_kg' => $vehicle->max_payload_kg,
+            'volume_m3' => $vehicle->volume_m3,
+        ], $data['mode'] ?? 'tetris');
+
+        $positioned = $result['mode'] === 'tetris';
 
         return response()->json([
             'success' => true,
-            'items' => $packed,
-            'skipped' => $skipped,
+            'mode' => $result['mode'],
+            'vehicle' => [
+                'code' => $vehicle->code,
+                'name' => $vehicle->name,
+                'length' => $vehicle->length_mm / 1000,
+                'width' => $vehicle->width_mm / 1000,
+                'height' => $vehicle->height_mm / 1000,
+                'volume_m3' => round($vehicle->volume_m3, 3),
+                'max_payload_kg' => $vehicle->max_payload_kg,
+            ],
+            'summary' => $result['summary'],
+            // Mode rasio tidak punya posisi 3D (x,y,z = null)
+            'items' => array_map(fn ($u) => $this->toItem($u, $positioned), $result['loaded']),
+            'unloaded' => array_map(fn ($u) => $this->toItem($u, false) + ['reason' => $u['reason']], $result['unloaded']),
         ]);
+    }
+
+    private function toItem(array $u, bool $positioned): array
+    {
+        return [
+            'id' => $u['id'],
+            'part_number' => $u['part_number'] ?? null,
+            'packing_type' => $u['packing_type'] ?? null,
+            'x' => $positioned ? $u['x'] / 1000 : null,
+            'y' => $positioned ? $u['y'] / 1000 : null,
+            'z' => $positioned ? $u['z'] / 1000 : null,
+            'length' => $u['l'] / 1000,
+            'width' => $u['w'] / 1000,
+            'height' => $u['h'] / 1000,
+            'status' => $u['status'],
+            'volume' => $u['volume'],
+            'weight_kg' => $u['weight'],
+            'route' => $u['route'] ?? null,
+            'category' => $u['category'] ?? null,
+        ];
     }
 }

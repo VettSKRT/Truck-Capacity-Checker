@@ -67,6 +67,26 @@ class UploadFlowTest extends TestCase
         ])->assertStatus(422)->assertJson(['success' => false]);
     }
 
+    public function test_optimize_supports_ratio_and_tetris_modes(): void
+    {
+        $id = $this->postJson('/upload', [
+            'excel_file' => $this->csv("Jakarta,SA38,A,SMP-0001,45,4,one_day\n"),
+            'vehicle' => 'CDD',
+        ])->json('upload_id');
+
+        $tetris = $this->postJson('/packing/optimize', ['upload_id' => $id, 'mode' => 'tetris'])->assertOk();
+        $this->assertSame('tetris', $tetris->json('mode'));
+        $this->assertCount(3, $tetris->json('items'));
+        $this->assertNotNull($tetris->json('items.0.z'));
+        $this->assertSame('CDD', $tetris->json('vehicle.code'));
+
+        $ratio = $this->postJson('/packing/optimize', ['upload_id' => $id, 'mode' => 'ratio'])->assertOk();
+        $this->assertSame('ratio', $ratio->json('mode'));
+        $this->assertNull($ratio->json('items.0.x'));
+
+        $this->postJson('/packing/optimize', ['upload_id' => $id, 'mode' => 'bogus'])->assertStatus(422);
+    }
+
     public function test_optimize_expands_box_count_and_uses_meters(): void
     {
         $id = $this->postJson('/upload', [

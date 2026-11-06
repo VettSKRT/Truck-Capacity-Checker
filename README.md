@@ -55,6 +55,14 @@ Aplikasi Laravel untuk mengecek kapasitas truk dengan visualisasi 3D real-time.
 - Karton **tidak boleh diputar** (P sejajar panjang kendaraan, L lebar, T tinggi).
 - Jalur 1-7 dari kode area, jalur 8 untuk Same Day dealer terpilih. **Isi mapping di `config/logistics.php`** (`area_routes`, `same_day_dealers`).
 
+## Algoritma packing (`POST /packing/optimize`)
+
+Parameter: `upload_id` (wajib), `mode` = `tetris` (default) atau `ratio`, `vehicle` (kode, default kendaraan upload), `only_ready` (default `true` = hanya Status 4).
+
+- **Mode `ratio`**: hanya kubikasi dan berat. Karton dimuat berurutan (Emergency, lalu Same Day, lalu One Day) sampai volume atau berat tercapai lebih dulu. Tidak ada posisi 3D.
+- **Mode `tetris`**: penyusunan 3D nyata. Karton tidak diputar, yang berat di bawah dan yang ringan di atas, dan karton hanya ditumpuk bila alasnya tertopang penuh (tanpa overhang/ruang kosong). Beberapa urutan pemuatan dicoba, lalu dipakai yang paling padat.
+- Karton yang tidak termuat dilaporkan di `unloaded` dengan alasan `weight`, `volume`, `space`, atau `too_big`. Dimensi respons dalam meter.
+
 ## Setup data
 
 ```
