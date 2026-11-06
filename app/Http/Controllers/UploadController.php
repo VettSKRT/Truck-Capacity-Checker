@@ -32,11 +32,6 @@ class UploadController extends Controller
     ) {
     }
 
-    public function index()
-    {
-        return view('upload', ['vehicles' => Vehicle::orderBy('id')->get()]);
-    }
-
     public function upload(Request $request)
     {
         $request->validate([
@@ -101,7 +96,7 @@ class UploadController extends Controller
                 'volume_ratio' => $sum['volume_ratio'],
                 'weight_ratio' => $sum['weight_ratio'],
                 'binding_constraint' => $sum['binding'],
-                'status' => $sum['ready'] ? 'Siap Dikirim' : 'Belum Siap',
+                'status' => $sum['over_capacity'] ? Upload::STATUS_OVER : ($sum['ready'] ? Upload::STATUS_READY : Upload::STATUS_WAIT),
             ]);
 
             return $upload;
@@ -291,7 +286,7 @@ class UploadController extends Controller
                 'weight_ratio' => $upload->weight_ratio,
                 'ratio' => $upload->ratio,
                 'binding' => $upload->binding_constraint,
-                'ready' => $upload->status === 'Siap Dikirim',
+                'ready' => $upload->isReady(),
                 'status' => $upload->status,
             ],
             'items' => $items,

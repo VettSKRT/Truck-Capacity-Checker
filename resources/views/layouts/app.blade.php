@@ -14,31 +14,100 @@
 <body>
     <a class="skip-link" href="#main">Langsung ke isi halaman</a>
 
-    <header class="app-header">
-        <div class="container-xl app-header__inner">
-            <a class="brand" href="{{ route('packing.index') }}">
-                <span class="brand__icon" aria-hidden="true"><i class="bi bi-truck"></i></span>
-                <span class="brand__text">
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar" aria-label="Menu utama">
+            <a class="sidebar__brand" href="{{ route('dashboard') }}">
+                <span class="sidebar__logo" aria-hidden="true"><i class="bi bi-truck"></i></span>
+                <span class="sidebar__title">
                     <strong>Cek Kapasitas Truk</strong>
-                    <small>Pengecekan muatan sebelum dikirim</small>
+                    <small>Gudang dan pengiriman</small>
                 </span>
             </a>
-            <nav class="app-nav" aria-label="Menu utama">
-                <a href="{{ route('packing.index') }}" class="{{ request()->routeIs('packing.index') ? 'is-active' : '' }}">
+
+            <nav class="sidebar__nav">
+                <a class="nav-item {{ request()->routeIs('dashboard') ? 'is-active' : '' }}" href="{{ route('dashboard') }}">
+                    <i class="bi bi-grid-1x2" aria-hidden="true"></i> Dashboard
+                </a>
+
+                <span class="sidebar__group">Kloter</span>
+                <a class="nav-item {{ request()->routeIs('packing.index') ? 'is-active' : '' }}" href="{{ route('packing.index') }}">
                     <i class="bi bi-speedometer2" aria-hidden="true"></i> Cek Kapasitas
                 </a>
-                <a href="{{ route('upload.form') }}" class="{{ request()->routeIs('upload.form') ? 'is-active' : '' }}">
-                    <i class="bi bi-file-earmark-arrow-up" aria-hidden="true"></i> Unggah Biasa
+                <a class="nav-item {{ request()->routeIs('batches.*', 'result') ? 'is-active' : '' }}" href="{{ route('batches.index') }}">
+                    <i class="bi bi-clock-history" aria-hidden="true"></i> Riwayat Kloter
+                </a>
+                <span class="nav-item is-disabled" aria-disabled="true">
+                    <i class="bi bi-calendar3" aria-hidden="true"></i> Penjadwalan <span class="nav-soon">Segera</span>
+                </span>
+
+                <span class="sidebar__group">Data</span>
+                <a class="nav-item {{ request()->routeIs('products.*') ? 'is-active' : '' }}" href="{{ route('products.index') }}">
+                    <i class="bi bi-boxes" aria-hidden="true"></i> Master Barang
+                </a>
+                <a class="nav-item {{ request()->routeIs('reference.*') ? 'is-active' : '' }}" href="{{ route('reference.index') }}">
+                    <i class="bi bi-rulers" aria-hidden="true"></i> Kendaraan dan Karton
                 </a>
             </nav>
-        </div>
-    </header>
 
-    <main id="main" class="container-xl app-main">
-        @yield('content')
-    </main>
+            <div class="sidebar__foot">Hari ini: {{ now()->translatedFormat('d F Y') }}</div>
+        </aside>
+
+        <div class="main-col">
+            <header class="topbar">
+                <button type="button" class="topbar__toggle" id="navToggle" aria-label="Buka menu" aria-controls="sidebar" aria-expanded="false">
+                    <i class="bi bi-list" aria-hidden="true"></i>
+                </button>
+                <div>
+                    <h1>@yield('heading')</h1>
+                    @hasSection('subheading')
+                        <div class="topbar__sub">@yield('subheading')</div>
+                    @endif
+                </div>
+                <div class="topbar__actions">@yield('actions')</div>
+            </header>
+
+            <main id="main" class="content">
+                @if (session('status'))
+                    <div class="notice notice--ok" role="status">
+                        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                        <div>
+                            {{ session('status') }}
+                            @if (session('import_messages'))
+                                <details class="mt-1"><summary>Lihat baris yang dilewati</summary>
+                                    <ul>@foreach (session('import_messages') as $m)<li>{{ $m }}</li>@endforeach</ul>
+                                </details>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+                @if ($errors->any())
+                    <div class="notice notice--error" role="alert">
+                        <i class="bi bi-x-octagon-fill" aria-hidden="true"></i>
+                        <div><strong>Gagal memproses.</strong> {{ $errors->first() }}</div>
+                    </div>
+                @endif
+
+                @yield('content')
+            </main>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            var btn = document.getElementById('navToggle');
+            btn.addEventListener('click', function () {
+                var open = document.body.classList.toggle('nav-open');
+                btn.setAttribute('aria-expanded', open);
+            });
+            document.addEventListener('click', function (e) {
+                if (document.body.classList.contains('nav-open') && !e.target.closest('#sidebar') && !e.target.closest('#navToggle')) {
+                    document.body.classList.remove('nav-open');
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        })();
+    </script>
     @stack('scripts')
 </body>
 </html>

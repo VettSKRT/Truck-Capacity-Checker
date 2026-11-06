@@ -34,12 +34,25 @@ Aplikasi Laravel untuk mengecek kapasitas truk dengan visualisasi 3D real-time.
 
 ## Cara Penggunaan
 
-1. **Akses aplikasi**: `http://localhost:8000`
-2. **Aplikasi akan langsung redirect ke halaman packing**
+1. **Akses aplikasi**: `http://localhost:8000` (membuka Dashboard)
+2. **Mulai dari menu Cek Kapasitas**
 3. **Upload Excel**: Pilih file Excel dengan format yang sesuai
 4. **Input Manual**: Atau input item secara manual
 5. **Lihat hasil**: Visualisasi 3D akan update secara real-time
 6. **Halaman laporan**: setelah upload via form biasa (`/upload`), hasil ada di `/result/{id}`
+
+## Menu aplikasi
+
+| Menu | Fungsi |
+|---|---|
+| Dashboard (`/`) | Ringkasan kloter hari ini dan kloter terbaru |
+| Cek Kapasitas (`/packing`) | Unggah file order, pilih kendaraan, lihat hasil dan tampilan 3D |
+| Riwayat Kloter (`/riwayat`) | Daftar semua kloter, filter, buka ulang hasil tersimpan, laporan, hapus |
+| Master Barang (`/master-barang`) | Lihat, cari, dan impor master barang |
+| Kendaraan dan Karton (`/referensi`) | Data acuan kendaraan dan 25 ukuran karton |
+
+**Satu kali unggah file order = satu kloter** (tabel `uploads`), tersimpan permanen sehingga bisa dibuka ulang dan dihitung ulang
+dengan kendaraan lain tanpa unggah ulang. Status kloter: Siap dikirim (rasio >= 80%), Belum siap, atau Melebihi kapasitas (> 100%).
 
 ## Kendaraan & aturan muatan
 

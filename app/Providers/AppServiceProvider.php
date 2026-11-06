@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Services\LoadCalculator;
 use App\Services\RouteResolver;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -29,6 +31,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Paginator::useBootstrapFive();
+
+        // Tanggal dan nama hari/bulan dalam bahasa Indonesia
+        Carbon::setLocale('id');
     }
 }

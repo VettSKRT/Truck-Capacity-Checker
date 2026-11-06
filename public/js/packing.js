@@ -21,7 +21,7 @@
         too_big: 'Ukuran karton lebih besar dari kendaraan',
     };
     const CAMERAS = {
-        iso: { eye: { x: 1.15, y: -1.55, z: 0.95 }, up: { x: 0, y: 0, z: 1 } },
+        iso: { eye: { x: 1.4, y: -1.9, z: 1.15 }, up: { x: 0, y: 0, z: 1 } },
         side: { eye: { x: 0, y: -2.4, z: 0.25 }, up: { x: 0, y: 0, z: 1 } },
         top: { eye: { x: 0, y: -0.001, z: 2.8 }, up: { x: 0, y: 1, z: 0 } },
         end: { eye: { x: -2.4, y: 0, z: 0.35 }, up: { x: 0, y: 0, z: 1 } },
@@ -106,82 +106,85 @@
     }
 
     /* ----------------------------- Form & file --------------------------- */
+    // Hanya ada di halaman Cek Kapasitas (di detail kloter tidak ada formulir unggah)
+    if (el.form) {
 
-    function setFile(file) {
-        if (file && !/\.(xlsx|xls|csv)$/i.test(file.name)) {
-            state.file = null;
-            showError('Format file tidak didukung. Gunakan file .xlsx, .xls, atau .csv.');
-            file = null;
-        }
-        state.file = file || null;
-        el.dropzone.classList.toggle('has-file', !!state.file);
-        el.submit.disabled = !state.file;
+        function setFile(file) {
+            if (file && !/\.(xlsx|xls|csv)$/i.test(file.name)) {
+                state.file = null;
+                showError('Format file tidak didukung. Gunakan file .xlsx, .xls, atau .csv.');
+                file = null;
+            }
+            state.file = file || null;
+            el.dropzone.classList.toggle('has-file', !!state.file);
+            el.submit.disabled = !state.file;
 
-        if (state.file) {
-            el.fileName.textContent = state.file.name;
-            el.fileHint.textContent = `Ukuran ${num(state.file.size / 1024, 0)} KB. Klik untuk mengganti file.`;
-            el.submitHint.textContent = 'Siap diproses.';
-        } else {
-            el.fileName.textContent = 'Klik di sini untuk memilih file';
-            el.fileHint.textContent = 'atau tarik file ke kotak ini (format .xlsx, .xls, atau .csv)';
-            el.submitHint.textContent = 'Pilih file dulu, lalu tombol ini aktif.';
+            if (state.file) {
+                el.fileName.textContent = state.file.name;
+                el.fileHint.textContent = `Ukuran ${num(state.file.size / 1024, 0)} KB. Klik untuk mengganti file.`;
+                el.submitHint.textContent = 'Siap diproses.';
+            } else {
+                el.fileName.textContent = 'Klik di sini untuk memilih file';
+                el.fileHint.textContent = 'atau tarik file ke kotak ini (format .xlsx, .xls, atau .csv)';
+                el.submitHint.textContent = 'Pilih file dulu, lalu tombol ini aktif.';
+            }
         }
+
+        function setBusy(busy) {
+            el.submit.disabled = busy || !state.file;
+            el.submitLabel.textContent = busy ? 'Sedang memeriksa' : 'Cek Kapasitas';
+            const icon = $('i, .spin', el.submit);
+            if (icon) {
+                icon.outerHTML = busy ? '<span class="spin" aria-hidden="true"></span>' : '<i class="bi bi-calculator" aria-hidden="true"></i>';
+            }
+            el.submitHint.textContent = busy ? 'Mohon tunggu sebentar.' : (state.file ? 'Siap diproses.' : 'Pilih file dulu, lalu tombol ini aktif.');
+        }
+
+        el.input.addEventListener('change', () => setFile(el.input.files[0]));
+
+        ['dragenter', 'dragover'].forEach((ev) => el.dropzone.addEventListener(ev, (e) => {
+            e.preventDefault();
+            el.dropzone.classList.add('is-over');
+        }));
+        ['dragleave', 'drop'].forEach((ev) => el.dropzone.addEventListener(ev, (e) => {
+            e.preventDefault();
+            el.dropzone.classList.remove('is-over');
+        }));
+        el.dropzone.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files.length) {
+                el.input.files = e.dataTransfer.files;
+                setFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        el.form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!state.file) return;
+
+            clearMessages();
+            // Hapus hasil lama agar tidak tertukar dengan hasil file yang baru (atau error-nya)
+            state.uploadId = null;
+            state.data = null;
+            state.seq++;
+            el.results.hidden = true;
+            el.empty.hidden = false;
+            setBusy(true);
+            try {
+                const fd = new FormData();
+                fd.append('excel_file', state.file);
+                fd.append('vehicle', vehicleCode());
+                const up = await request('/upload', { method: 'POST', body: fd });
+
+                state.uploadId = up.upload_id;
+                showWarnings(up.warnings);
+                await optimize(true);
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                setBusy(false);
+            }
+        });
     }
-
-    function setBusy(busy) {
-        el.submit.disabled = busy || !state.file;
-        el.submitLabel.textContent = busy ? 'Sedang memeriksa' : 'Cek Kapasitas';
-        const icon = $('i, .spin', el.submit);
-        if (icon) {
-            icon.outerHTML = busy ? '<span class="spin" aria-hidden="true"></span>' : '<i class="bi bi-calculator" aria-hidden="true"></i>';
-        }
-        el.submitHint.textContent = busy ? 'Mohon tunggu sebentar.' : (state.file ? 'Siap diproses.' : 'Pilih file dulu, lalu tombol ini aktif.');
-    }
-
-    el.input.addEventListener('change', () => setFile(el.input.files[0]));
-
-    ['dragenter', 'dragover'].forEach((ev) => el.dropzone.addEventListener(ev, (e) => {
-        e.preventDefault();
-        el.dropzone.classList.add('is-over');
-    }));
-    ['dragleave', 'drop'].forEach((ev) => el.dropzone.addEventListener(ev, (e) => {
-        e.preventDefault();
-        el.dropzone.classList.remove('is-over');
-    }));
-    el.dropzone.addEventListener('drop', (e) => {
-        if (e.dataTransfer.files.length) {
-            el.input.files = e.dataTransfer.files;
-            setFile(e.dataTransfer.files[0]);
-        }
-    });
-
-    el.form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!state.file) return;
-
-        clearMessages();
-        // Hapus hasil lama agar tidak tertukar dengan hasil file yang baru (atau error-nya)
-        state.uploadId = null;
-        state.data = null;
-        state.seq++;
-        el.results.hidden = true;
-        el.empty.hidden = false;
-        setBusy(true);
-        try {
-            const fd = new FormData();
-            fd.append('excel_file', state.file);
-            fd.append('vehicle', vehicleCode());
-            const up = await request('/upload', { method: 'POST', body: fd });
-
-            state.uploadId = up.upload_id;
-            showWarnings(up.warnings);
-            await optimize(true);
-        } catch (err) {
-            showError(err.message);
-        } finally {
-            setBusy(false);
-        }
-    });
 
     // Ganti kendaraan / cara hitung setelah ada hasil -> hitung ulang otomatis
     $$('input[name="vehicle"]').forEach((r) => r.addEventListener('change', () => state.uploadId && optimize()));
@@ -216,7 +219,7 @@
     }
 
     function render(data) {
-        el.empty.hidden = true;
+        if (el.empty) el.empty.hidden = true;
         el.results.hidden = false;
 
         renderBanner(data);
@@ -467,4 +470,9 @@
             Plotly.Plots.resize('plot');
         }
     });
+    // Detail kloter: hasil dimuat otomatis dari data yang tersimpan
+    if (el.results.dataset.uploadId) {
+        state.uploadId = Number(el.results.dataset.uploadId);
+        optimize();
+    }
 })();

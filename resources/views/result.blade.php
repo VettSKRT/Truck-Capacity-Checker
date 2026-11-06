@@ -1,6 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Laporan Muatan')
+@section('title', 'Laporan ' . $upload->code)
+@section('heading', 'Laporan Kloter ' . $upload->code)
+@section('subheading', $upload->filename . ', diunggah ' . $upload->created_at->translatedFormat('d F Y H:i') . ($upload->vehicle ? ', kendaraan ' . $upload->vehicle->name : ''))
+
+@section('actions')
+    <a class="btn-soft" href="{{ route('batches.show', $upload) }}"><i class="bi bi-box" aria-hidden="true"></i> Tampilan 3D</a>
+    <a class="btn-soft" href="{{ route('batches.index') }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Riwayat</a>
+@endsection
 
 @section('content')
 @php
@@ -12,21 +19,12 @@
     $fillClass = $over ? 'is-over' : ($upload->ratio >= config('logistics.ready_ratio', 0.8) ? 'is-ok' : '');
 @endphp
 
-<div class="report-head">
-    <div>
-        <h1>Laporan Muatan</h1>
-        <p class="report-meta">
-            File {{ $upload->filename }}, diunggah {{ $upload->created_at->translatedFormat('d F Y H:i') }}
-            @if ($vehicle)
-                , kendaraan {{ $vehicle->name }} ({{ $fmt($vehicle->volume_m3) }} m³ dan {{ $fmt($vehicle->max_payload_kg, 0) }} kg)
-            @endif
-        </p>
-    </div>
-    <a class="btn-soft" href="{{ route('packing.index') }}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Kembali ke Cek Kapasitas</a>
-</div>
+@if ($vehicle)
+    <p class="text-muted mb-3">Kapasitas {{ $vehicle->name }}: {{ $fmt($vehicle->volume_m3) }} m³ dan {{ $fmt($vehicle->max_payload_kg, 0) }} kg.</p>
+@endif
 
 @if ($over)
-    <div class="status-banner is-over mb-4" role="status">
+    <div class="status-banner is-over mb-3" role="status">
         <i class="bi bi-x-octagon-fill status-banner__icon" aria-hidden="true"></i>
         <div class="status-banner__body">
             <div class="status-banner__title">Melebihi kapasitas</div>
@@ -34,7 +32,7 @@
         </div>
     </div>
 @elseif ($ready)
-    <div class="status-banner is-ready mb-4" role="status">
+    <div class="status-banner is-ready mb-3" role="status">
         <i class="bi bi-check-circle-fill status-banner__icon" aria-hidden="true"></i>
         <div class="status-banner__body">
             <div class="status-banner__title">Siap dikirim</div>
@@ -42,7 +40,7 @@
         </div>
     </div>
 @else
-    <div class="status-banner is-wait mb-4" role="status">
+    <div class="status-banner is-wait mb-3" role="status">
         <i class="bi bi-hourglass-split status-banner__icon" aria-hidden="true"></i>
         <div class="status-banner__body">
             <div class="status-banner__title">Belum siap dikirim</div>
@@ -51,7 +49,7 @@
     </div>
 @endif
 
-<div class="stat-grid mb-4">
+<div class="stat-grid mb-3">
     <div class="stat">
         <div class="stat__value">{{ $fmt($upload->volume_ratio * 100, 1) }}%</div>
         <div class="stat__label">Volume terisi ({{ $fmt($upload->total_volume) }} m³)</div>
