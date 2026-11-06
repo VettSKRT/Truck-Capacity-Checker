@@ -53,6 +53,9 @@ class PackingService
                     'route' => $box->route,
                     'service_type' => $box->service_type,
                     'part_number' => $box->part_number,
+                    'customer_code' => $box->customer_code,
+                    'customer_name' => $box->customer_name,
+                    'cargo_destination' => $box->cargo_destination,
                     'packing_type' => $box->packing_type,
                     'category' => $box->category,
                 ];

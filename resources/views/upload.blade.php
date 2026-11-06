@@ -1,28 +1,42 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Upload Data Truk</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="p-4">
-    <h2>Upload File Excel</h2>
-    <form action="{{ route('upload') }}" method="POST" enctype="multipart/form-data">
-        @csrf
-        <label class="form-label mt-2">Kendaraan</label>
-        <select name="vehicle" class="form-select mb-3">
+@extends('layouts.app')
+
+@section('title', 'Unggah Biasa')
+
+@section('content')
+<div class="page-intro">
+    <h1>Unggah Biasa</h1>
+    <p>Unggah file order lalu langsung buka laporan lengkapnya. Untuk tampilan 3D, gunakan halaman Cek Kapasitas.</p>
+</div>
+
+<form action="{{ route('upload') }}" method="POST" enctype="multipart/form-data" class="panel">
+    @csrf
+
+    @if ($errors->any())
+        <div class="notice notice--error" role="alert">
+            <i class="bi bi-x-octagon-fill" aria-hidden="true"></i>
+            <div><strong>Gagal memproses.</strong><br>{{ $errors->first() }}</div>
+        </div>
+    @endif
+
+    <div class="mb-3">
+        <label class="form-label fw-bold" for="vehicle">Kendaraan</label>
+        <select name="vehicle" id="vehicle" class="form-select form-select-lg">
             @foreach ($vehicles as $v)
                 <option value="{{ $v->code }}" @selected($v->code === config('logistics.default_vehicle'))>
-                    {{ $v->name }} - {{ number_format($v->volume_m3, 2) }} m³ / {{ number_format($v->max_payload_kg) }} kg
+                    {{ $v->name }}: {{ number_format($v->volume_m3, 2, ',', '.') }} m³ dan {{ number_format($v->max_payload_kg, 0, ',', '.') }} kg
                 </option>
             @endforeach
         </select>
-        <input type="file" name="excel_file" class="form-control @error('excel_file') is-invalid @enderror"
-               accept=".xlsx,.xls,.csv" required>
-        @error('excel_file')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
-        <button type="submit" class="btn btn-primary mt-3">Upload</button>
-        <a href="{{ route('packing.index') }}" class="btn btn-secondary mt-3">Kembali</a>
-    </form>
-</body>
-</html>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-bold" for="excel_file">File order (.xlsx, .xls, atau .csv)</label>
+        <input type="file" id="excel_file" name="excel_file" class="form-control form-control-lg" accept=".xlsx,.xls,.csv" required>
+    </div>
+
+    <div class="action-row">
+        <button type="submit" class="btn-cta"><i class="bi bi-upload" aria-hidden="true"></i> Unggah dan Cek</button>
+        <a href="{{ route('packing.index') }}" class="btn-soft">Kembali</a>
+    </div>
+</form>
+@endsection

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Box;
 use App\Models\Upload;
 use App\Models\Vehicle;
+use App\Services\LoadCalculator;
 use App\Services\PackingService;
 use Illuminate\Http\Request;
 
@@ -15,7 +16,7 @@ class PackingController extends Controller
 
     public function index()
     {
-        return view('packing.index');
+        return view('packing.index', ['vehicles' => Vehicle::orderBy('id')->get()]);
     }
 
     /**
@@ -29,7 +30,7 @@ class PackingController extends Controller
      *
      * Semua dimensi pada respons dalam METER.
      */
-    public function optimize(Request $request, PackingService $packing)
+    public function optimize(Request $request, PackingService $packing, LoadCalculator $calculator)
     {
         $data = $request->validate([
             'upload_id' => 'required|integer|exists:uploads,id',
@@ -61,6 +62,15 @@ class PackingController extends Controller
             ], 422);
         }
 
+        // Kebutuhan muatan: seluruh karton yang diminta dibanding kapasitas kendaraan
+        $demandVolume = array_sum(array_map(fn ($u) => $u['l'] * $u['w'] * $u['h'] / 1e9, $units));
+        $demandWeight = array_sum(array_column($units, 'weight'));
+        $demand = $calculator->summarize($demandVolume, $demandWeight, $vehicle->volume_m3, $vehicle->max_payload_kg) + [
+            'carton_count' => count($units),
+            'total_volume_m3' => $demandVolume,
+            'total_weight_kg' => $demandWeight,
+        ];
+
         $result = $packing->pack($units, [
             'length_mm' => $vehicle->length_mm,
             'width_mm' => $vehicle->width_mm,
@@ -83,6 +93,8 @@ class PackingController extends Controller
                 'volume_m3' => round($vehicle->volume_m3, 3),
                 'max_payload_kg' => $vehicle->max_payload_kg,
             ],
+            'upload' => ['id' => $upload->id, 'filename' => $upload->filename],
+            'demand' => $demand,
             'summary' => $result['summary'],
             // Mode rasio tidak punya posisi 3D (x,y,z = null)
             'items' => array_map(fn ($u) => $this->toItem($u, $positioned), $result['loaded']),
@@ -95,6 +107,9 @@ class PackingController extends Controller
         return [
             'id' => $u['id'],
             'part_number' => $u['part_number'] ?? null,
+            'customer_code' => $u['customer_code'] ?? null,
+            'customer_name' => $u['customer_name'] ?? null,
+            'cargo_destination' => $u['cargo_destination'] ?? null,
             'packing_type' => $u['packing_type'] ?? null,
             'x' => $positioned ? $u['x'] / 1000 : null,
             'y' => $positioned ? $u['y'] / 1000 : null,
