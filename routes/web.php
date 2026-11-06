@@ -5,6 +5,7 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\PackingController;
 
 Route::get('/', [PackingController::class, 'index']);
+Route::get('/upload', [UploadController::class, 'index'])->name('upload.form');
 Route::post('/upload', [UploadController::class, 'upload'])->name('upload');
 Route::get('/result/{id}', [UploadController::class, 'result'])->name('result');
 Route::get('/packing', [PackingController::class, 'index'])->name('packing.index');

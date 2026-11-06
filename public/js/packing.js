@@ -1,378 +1,31 @@
-// Real-time update functionality for packing optimization
-let currentUploadId = null;
-let plot = null;
-const container = {
-    length: 16,
-    width: 1,
-    height: 1
-};
+// Truck Capacity Checker - packing page
+// State disimpan di memori (bukan di-parse dari DOM) agar akurat dan aman.
 
-function initVisualization() {
-    const layout = {
-        scene: {
-            aspectmode: "data",
-            camera: {
-                eye: {x: 1.5, y: 1.5, z: 1.5}
-            }
-        },
-        margin: {l: 0, r: 0, t: 0, b: 0},
-        showlegend: true
-    };
+const container = { length: 16, width: 1, height: 1 };
+const CONTAINER_VOLUME = container.length * container.width * container.height;
+const READY_RATIO = 0.8; // Status 4 >= 80% => siap dikirim
+const STATUS_COLORS = { 2: '#ffc107', 3: '#17a2b8', 4: '#28a745' };
+const MESH_I = [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2];
+const MESH_J = [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3];
+const MESH_K = [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6];
 
-    const data = [{
-        type: "mesh3d",
-        x: [0, container.length, container.length, 0, 0, container.length, container.length, 0],
-        y: [0, 0, container.width, container.width, 0, 0, container.width, container.width],
-        z: [0, 0, 0, 0, container.height, container.height, container.height, container.height],
-        i: [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
-        j: [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
-        k: [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
-        opacity: 0.3,
-        color: '#aaa',
-        name: 'Container'
-    }];
+let items = [];          // semua item (dimensi dalam meter)
+let packedItems = [];    // hasil packing (dengan posisi x,y,z)
+let nextItemId = 1;
+let selectedItemId = null;
 
-    Plotly.newPlot('visualization', data, layout);
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
 }
 
-function updateVisualization(items) {
-    const data = [{
-        type: "mesh3d",
-        x: [0, container.length, container.length, 0, 0, container.length, container.length, 0],
-        y: [0, 0, container.width, container.width, 0, 0, container.width, container.width],
-        z: [0, 0, 0, 0, container.height, container.height, container.height, container.height],
-        i: [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
-        j: [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
-        k: [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
-        opacity: 0.3,
-        color: '#aaa',
-        name: 'Container'
-    }];
-
-    // Add items to visualization
-    items.forEach((item, index) => {
-        const itemMesh = createItemMesh(item, index);
-        data.push(itemMesh);
-    });
-
-    Plotly.react('visualization', data);
-}
-
-function createItemMesh(item, index) {
-    const colors = {
-        2: '#ffc107',
-        3: '#17a2b8',
-        4: '#28a745'
-    };
-
-    return {
-        type: "mesh3d",
-        x: [item.x, item.x + item.length, item.x + item.length, item.x,
-            item.x, item.x + item.length, item.x + item.length, item.x],
-        y: [item.y, item.y, item.y + item.width, item.y + item.width,
-            item.y, item.y, item.y + item.width, item.y + item.width],
-        z: [item.z, item.z, item.z, item.z,
-            item.z + item.height, item.z + item.height, item.z + item.height, item.z + item.height],
-        i: [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
-        j: [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
-        k: [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
-        opacity: 0.8,
-        color: colors[item.status] || '#aaa',
-        name: `Item ${index + 1} (Status ${item.status})`
-    };
-}
-
-function initRealTimeUpdates() {
-    // Handle Excel upload form
-    $('#excelUploadForm').on('submit', function(e) {
-        e.preventDefault();
-        uploadExcelFile();
-    });
-
-    // Handle manual form submission
-    $('#itemsForm').on('submit', function(e) {
-        e.preventDefault();
-        addItem();
-    });
-
-    // Listen for changes in items
-    $(document).on('click', '.item-card', function() {
-        const itemId = $(this).data('item-id');
-        highlightItem(itemId);
-    });
-
-    // Optimize packing when needed
-    function optimizePacking() {
-        // Get all items from the list
-        const items = [];
-        $('.item-card').each(function() {
-            const $card = $(this);
-            const itemId = $card.data('item-id');
-            const $text = $card.find('small').first().text();
-            const dimensions = $text.match(/(\d+\.?\d*)m × (\d+\.?\d*)m × (\d+\.?\d*)m/);
-            const volumeText = $card.find('small').last().text();
-            const volume = parseFloat(volumeText.match(/(\d+\.?\d*)/)[1]);
-            const status = parseInt($card.find('.badge').text().match(/(\d+)/)[1]);
-            
-            if (dimensions) {
-                items.push({
-                    id: itemId,
-                    length: parseFloat(dimensions[1]),
-                    width: parseFloat(dimensions[2]),
-                    height: parseFloat(dimensions[3]),
-                    status: status,
-                    volume: volume
-                });
-            }
-        });
-        
-        // Simple packing algorithm
-        const packedItems = simplePackingAlgorithm(items);
-        
-        // Update visualization and metrics
-        updateVisualization(packedItems);
-        updateEfficiencyMetrics(packedItems);
-    }
-    
-    function simplePackingAlgorithm(items) {
-        const containerLength = 16;
-        const containerWidth = 1;
-        const containerHeight = 1;
-        
-        let currentX = 0;
-        let currentY = 0;
-        let currentZ = 0;
-        const packedItems = [];
-        
-        items.forEach((item, index) => {
-            // Check if item fits in current position
-            if (currentX + item.length <= containerLength &&
-                currentY + item.width <= containerWidth &&
-                currentZ + item.height <= containerHeight) {
-                
-                packedItems.push({
-                    ...item,
-                    x: currentX,
-                    y: currentY,
-                    z: currentZ
-                });
-                
-                // Move to next position
-                currentX += item.length;
-                if (currentX >= containerLength) {
-                    currentX = 0;
-                    currentY += item.width;
-                    if (currentY >= containerWidth) {
-                        currentY = 0;
-                        currentZ += item.height;
-                    }
-                }
-            }
-        });
-        
-        return packedItems;
-    }
-
-    function updateEfficiencyMetrics(items) {
-        const totalVolume = items.reduce((sum, item) => sum + item.volume, 0);
-        const efficiency = (totalVolume / 16) * 100; // 16m³ container volume
-        
-        $('#volumeUsed').text(`${totalVolume.toFixed(2)} m³`);
-        $('#efficiency').text(`${efficiency.toFixed(1)}%`);
-        
-        // Update progress bar color based on efficiency
-        const $progressBar = $('.efficiency-progress .progress-bar');
-        $progressBar.css('width', `${efficiency}%`);
-        
-        if (efficiency >= 80) {
-            $progressBar.removeClass('bg-warning bg-danger').addClass('bg-success');
-        } else if (efficiency >= 50) {
-            $progressBar.removeClass('bg-success bg-danger').addClass('bg-warning');
-        } else {
-            $progressBar.removeClass('bg-success bg-warning').addClass('bg-danger');
-        }
-    }
-
-    function highlightItem(itemId) {
-        // Remove previous highlights
-        $('.item-card').removeClass('selected');
-        // Add highlight to selected item
-        $(`.item-card[data-item-id="${itemId}"]`).addClass('selected');
-        
-        // Highlight corresponding 3D item
-        highlightMesh(itemId);
-    }
-
-    function highlightMesh(itemId) {
-        // Implementation for highlighting 3D mesh
-        // This can be customized based on your needs
-        console.log('Highlighting mesh for item:', itemId);
-    }
-
-    // Initial optimization
-    optimizePacking();
-}
-
-function uploadExcelFile() {
-    const formData = new FormData();
-    const fileInput = document.getElementById('excel_file');
-    const uploadBtn = document.getElementById('uploadBtn');
-    
-    if (fileInput.files.length === 0) {
-        alert('Please select a file');
-        return;
-    }
-    
-    // Disable button and show loading
-    uploadBtn.disabled = true;
-    uploadBtn.textContent = 'Uploading...';
-    
-    formData.append('excel_file', fileInput.files[0]);
-    formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
-    
-    $.ajax({
-        url: '/upload',
-        method: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            if (response.success) {
-                // Clear existing items
-                $('#itemsList').empty();
-                
-                // Add items from Excel
-                response.items.forEach(item => {
-                    addItemFromExcel(item);
-                });
-                
-                // Update data table
-                updateDataTable(response.items);
-                
-                // Trigger optimization
-                setTimeout(optimizePacking, 100);
-                
-                alert('File uploaded successfully! ' + response.items.length + ' items loaded.');
-            } else {
-                alert('Error loading file: ' + response.message);
-            }
-        },
-        error: function(xhr) {
-            console.error('Upload error:', xhr);
-            alert('Error uploading file: ' + (xhr.responseJSON?.message || xhr.responseText || 'Unknown error'));
-        },
-        complete: function() {
-            // Re-enable button
-            uploadBtn.disabled = false;
-            uploadBtn.textContent = 'Upload & Load Data';
-        }
-    });
-}
-
-function updateDataTable(items) {
-    let tableHtml = `
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>No</th>
-                        <th>Customer Name</th>
-                        <th>Destination</th>
-                        <th>Dimensions (mm)</th>
-                        <th>Volume (m³)</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-    
-    items.forEach((item, index) => {
-        const volume = item.panjang * item.lebar * item.tinggi;
-        const statusColor = getStatusColor(item.status);
-        
-        tableHtml += `
-            <tr>
-                <td>${index + 1}</td>
-                <td>${item.customer_name || 'N/A'}</td>
-                <td>${item.cargo_destination || 'N/A'}</td>
-                <td>${item.panjang * 1000} × ${item.lebar * 1000} × ${item.tinggi * 1000}</td>
-                <td>${volume.toFixed(2)}</td>
-                <td><span class="badge bg-${statusColor}">Status ${item.status}</span></td>
-            </tr>
-        `;
-    });
-    
-    tableHtml += `
-                </tbody>
-            </table>
-        </div>
-    `;
-    
-    $('#dataTableContainer').html(tableHtml);
-}
-
-function addItemFromExcel(item) {
-    const itemId = Date.now() + Math.random(); // Unique ID
-    const volume = item.panjang * item.lebar * item.tinggi;
-    
-    // Add item card
-    const itemCard = `
-        <div class="item-card" data-item-id="${itemId}">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>${item.customer_name || 'Item ' + itemId}</strong><br>
-                    <small>${item.panjang}m × ${item.lebar}m × ${item.tinggi}m</small><br>
-                    <small>Volume: ${volume.toFixed(2)} m³</small>
-                    ${item.cargo_destination ? `<br><small>Destination: ${item.cargo_destination}</small>` : ''}
-                </div>
-                <span class="badge bg-${getStatusColor(item.status)}">Status ${item.status}</span>
-            </div>
-        </div>
-    `;
-    
-    $('#itemsList').append(itemCard);
-}
-
-function addItem() {
-    const lengthMm = parseFloat($('#itemLength').val());
-    const widthMm = parseFloat($('#itemWidth').val());
-    const heightMm = parseFloat($('#itemHeight').val());
-    const status = parseInt($('#itemStatus').val());
-    
-    if (lengthMm && widthMm && heightMm) {
-        // Convert mm to meters for calculations
-        const lengthM = lengthMm / 1000;
-        const widthM = widthMm / 1000;
-        const heightM = heightMm / 1000;
-        const volume = lengthM * widthM * heightM;
-        const itemId = Date.now(); // Simple ID generation
-        
-        // Add item card
-        const itemCard = `
-            <div class="item-card" data-item-id="${itemId}">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>Item ${itemId}</strong><br>
-                        <small>${lengthM}m × ${widthM}m × ${heightM}m</small><br>
-                        <small>Volume: ${volume.toFixed(2)} m³</small>
-                    </div>
-                    <span class="badge bg-${getStatusColor(status)}">Status ${status}</span>
-                </div>
-            </div>
-        `;
-        
-        $('#itemsList').append(itemCard);
-        
-        // Clear form
-        $('#itemsForm')[0].reset();
-        
-        // Trigger optimization
-        setTimeout(optimizePacking, 100);
-    }
+function round3(n) {
+    return Math.round(n * 1000) / 1000;
 }
 
 function getStatusColor(status) {
-    switch(status) {
+    switch (Number(status)) {
         case 2: return 'warning';
         case 3: return 'info';
         case 4: return 'success';
@@ -380,8 +33,306 @@ function getStatusColor(status) {
     }
 }
 
-// Initialize when document is ready
-$(document).ready(function() {
-    initVisualization();
-    initRealTimeUpdates();
+/* ---------- 3D visualization ---------- */
+
+function containerMesh() {
+    return {
+        type: 'mesh3d',
+        x: [0, container.length, container.length, 0, 0, container.length, container.length, 0],
+        y: [0, 0, container.width, container.width, 0, 0, container.width, container.width],
+        z: [0, 0, 0, 0, container.height, container.height, container.height, container.height],
+        i: MESH_I, j: MESH_J, k: MESH_K,
+        opacity: 0.3,
+        color: '#aaa',
+        name: 'Container',
+        hoverinfo: 'name'
+    };
+}
+
+function createItemMesh(item, index) {
+    const selected = item.id === selectedItemId;
+    return {
+        type: 'mesh3d',
+        x: [item.x, item.x + item.length, item.x + item.length, item.x,
+            item.x, item.x + item.length, item.x + item.length, item.x],
+        y: [item.y, item.y, item.y + item.width, item.y + item.width,
+            item.y, item.y, item.y + item.width, item.y + item.width],
+        z: [item.z, item.z, item.z, item.z,
+            item.z + item.height, item.z + item.height, item.z + item.height, item.z + item.height],
+        i: MESH_I, j: MESH_J, k: MESH_K,
+        opacity: selected ? 1 : 0.8,
+        color: selected ? '#dc3545' : (STATUS_COLORS[item.status] || '#aaa'),
+        flatshading: true,
+        name: `Item ${index + 1} (Status ${item.status})`
+    };
+}
+
+function renderVisualization() {
+    const layout = {
+        scene: {
+            aspectmode: 'data',
+            camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } }
+        },
+        margin: { l: 0, r: 0, t: 0, b: 0 },
+        showlegend: false
+    };
+    const data = [containerMesh(), ...packedItems.map(createItemMesh)];
+    Plotly.react('visualization', data, layout);
+}
+
+/* ---------- Packing (shelf algorithm) ---------- */
+
+function packItems(list) {
+    // Prioritas: status tertinggi dulu, lalu volume terbesar (sama seperti backend)
+    const sorted = [...list].sort((a, b) => b.status - a.status || b.volume - a.volume);
+
+    const eps = 1e-9;
+    let x = 0, y = 0, z = 0, rowDepth = 0, layerHeight = 0;
+    const packed = [];
+
+    sorted.forEach(item => {
+        if (item.length > container.length + eps ||
+            item.width > container.width + eps ||
+            item.height > container.height + eps) {
+            return;
+        }
+
+        if (x + item.length > container.length + eps) {   // baris baru
+            x = 0;
+            y += rowDepth;
+            rowDepth = 0;
+        }
+        if (y + item.width > container.width + eps) {     // lapisan baru
+            x = 0;
+            y = 0;
+            z += layerHeight;
+            rowDepth = 0;
+            layerHeight = 0;
+        }
+        if (z + item.height > container.height + eps) {   // container penuh
+            return;
+        }
+
+        packed.push({ ...item, x, y, z });
+        x += item.length;
+        rowDepth = Math.max(rowDepth, item.width);
+        layerHeight = Math.max(layerHeight, item.height);
+    });
+
+    return packed;
+}
+
+function optimizePacking() {
+    packedItems = packItems(items);
+    renderVisualization();
+    updateEfficiencyMetrics();
+    renderItemList();
+}
+
+/* ---------- Metrics ---------- */
+
+function updateEfficiencyMetrics() {
+    const packedVolume = packedItems.reduce((s, i) => s + i.volume, 0);
+    const status4Volume = packedItems
+        .filter(i => i.status === 4)
+        .reduce((s, i) => s + i.volume, 0);
+    const ratio = status4Volume / CONTAINER_VOLUME;
+    const efficiency = ratio * 100;
+
+    $('#volumeUsed').text(`${packedVolume.toFixed(2)} m³ (${((packedVolume / CONTAINER_VOLUME) * 100).toFixed(1)}%)`);
+    $('#efficiency').text(`${efficiency.toFixed(1)}%`);
+
+    const ready = ratio >= READY_RATIO;
+    $('#readyStatus')
+        .text(items.length === 0 ? '-' : (ready ? 'Siap Dikirim' : 'Belum Siap'))
+        .removeClass('bg-success bg-danger bg-secondary')
+        .addClass(items.length === 0 ? 'bg-secondary' : (ready ? 'bg-success' : 'bg-danger'));
+
+    const $bar = $('.efficiency-progress .progress-bar');
+    $bar.css('width', `${Math.min(efficiency, 100)}%`).attr('aria-valuenow', efficiency.toFixed(1));
+    if (efficiency >= 80) {
+        $bar.removeClass('bg-warning bg-danger').addClass('bg-success');
+    } else if (efficiency >= 50) {
+        $bar.removeClass('bg-success bg-danger').addClass('bg-warning');
+    } else {
+        $bar.removeClass('bg-success bg-warning').addClass('bg-danger');
+    }
+
+    const skipped = items.length - packedItems.length;
+    $('#packingNote').text(skipped > 0 ? `${skipped} item tidak muat di container.` : '');
+}
+
+/* ---------- Item list & table ---------- */
+
+function renderItemList() {
+    const packedIds = new Set(packedItems.map(i => i.id));
+    const html = items.map((item, index) => {
+        const fits = packedIds.has(item.id);
+        const title = item.customer_name || `Item ${index + 1}`;
+        return `
+        <div class="item-card ${item.id === selectedItemId ? 'selected' : ''}" data-item-id="${item.id}">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${escapeHtml(title)}</strong><br>
+                    <small>${item.length}m × ${item.width}m × ${item.height}m</small><br>
+                    <small>Volume: ${item.volume.toFixed(2)} m³</small>
+                    ${item.cargo_destination ? `<br><small>Destination: ${escapeHtml(item.cargo_destination)}</small>` : ''}
+                    ${fits ? '' : '<br><small class="text-danger">Tidak muat di container</small>'}
+                </div>
+                <span class="badge bg-${getStatusColor(item.status)}">Status ${item.status}</span>
+            </div>
+        </div>`;
+    }).join('');
+    $('#itemsList').html(html);
+}
+
+function updateDataTable(list) {
+    if (!list.length) {
+        $('#dataTableContainer').html('<p class="text-muted text-center">Upload Excel/CSV file to see data table here</p>');
+        return;
+    }
+    const rows = list.map((item, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td>${escapeHtml(item.customer_name) || 'N/A'}</td>
+            <td>${escapeHtml(item.cargo_destination) || 'N/A'}</td>
+            <td>${Math.round(item.length * 1000)} × ${Math.round(item.width * 1000)} × ${Math.round(item.height * 1000)}</td>
+            <td>${item.volume.toFixed(2)}</td>
+            <td><span class="badge bg-${getStatusColor(item.status)}">Status ${item.status}</span></td>
+        </tr>`).join('');
+
+    $('#dataTableContainer').html(`
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>No</th><th>Customer Name</th><th>Destination</th>
+                        <th>Dimensions (mm)</th><th>Volume (m³)</th><th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`);
+}
+
+/* ---------- Selection / highlight ---------- */
+
+function highlightItem(itemId) {
+    selectedItemId = selectedItemId === itemId ? null : itemId; // klik lagi = batal pilih
+    $('.item-card').removeClass('selected');
+    if (selectedItemId !== null) {
+        $(`.item-card[data-item-id="${selectedItemId}"]`).addClass('selected');
+    }
+    renderVisualization();
+}
+
+/* ---------- Actions ---------- */
+
+function normalizeItem(raw, id) {
+    const length = round3(Number(raw.panjang ?? raw.length));
+    const width = round3(Number(raw.lebar ?? raw.width));
+    const height = round3(Number(raw.tinggi ?? raw.height));
+    return {
+        id,
+        customer_name: raw.customer_name || '',
+        customer_code: raw.customer_code || '',
+        cargo_destination: raw.cargo_destination || '',
+        length, width, height,
+        status: Number(raw.status),
+        volume: length * width * height
+    };
+}
+
+function addItem() {
+    const lengthMm = parseFloat($('#itemLength').val());
+    const widthMm = parseFloat($('#itemWidth').val());
+    const heightMm = parseFloat($('#itemHeight').val());
+    const status = parseInt($('#itemStatus').val(), 10);
+
+    if (!(lengthMm > 0 && widthMm > 0 && heightMm > 0)) {
+        alert('Panjang, lebar, dan tinggi harus lebih dari 0.');
+        return;
+    }
+
+    items.push(normalizeItem({
+        panjang: lengthMm / 1000,
+        lebar: widthMm / 1000,
+        tinggi: heightMm / 1000,
+        status
+    }, nextItemId++));
+
+    $('#itemsForm')[0].reset();
+    optimizePacking();
+}
+
+function uploadExcelFile() {
+    const fileInput = document.getElementById('excel_file');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    if (fileInput.files.length === 0) {
+        alert('Please select a file');
+        return;
+    }
+
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading...';
+
+    const formData = new FormData();
+    formData.append('excel_file', fileInput.files[0]);
+    formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+
+    $.ajax({
+        url: '/upload',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: { 'Accept': 'application/json' },
+        success: function (response) {
+            if (!response.success) {
+                alert('Error loading file: ' + response.message);
+                return;
+            }
+            selectedItemId = null;
+            items = response.items.map(raw => normalizeItem(raw, nextItemId++));
+            updateDataTable(items);
+            optimizePacking();
+
+            let msg = `File uploaded successfully! ${items.length} items loaded.`;
+            if (response.warnings && response.warnings.length) {
+                msg += '\n\nBaris dilewati:\n' + response.warnings.slice(0, 5).join('\n');
+            }
+            alert(msg);
+        },
+        error: function (xhr) {
+            console.error('Upload error:', xhr);
+            const errors = xhr.responseJSON?.errors;
+            const detail = errors ? Object.values(errors).flat().join('\n') : null;
+            alert('Error uploading file: ' + (detail || xhr.responseJSON?.message || 'Unknown error'));
+        },
+        complete: function () {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload & Load Data';
+        }
+    });
+}
+
+/* ---------- Init ---------- */
+
+$(document).ready(function () {
+    $('#excelUploadForm').on('submit', function (e) {
+        e.preventDefault();
+        uploadExcelFile();
+    });
+
+    $('#itemsForm').on('submit', function (e) {
+        e.preventDefault();
+        addItem();
+    });
+
+    $(document).on('click', '.item-card', function () {
+        highlightItem($(this).data('item-id'));
+    });
+
+    optimizePacking();
 });

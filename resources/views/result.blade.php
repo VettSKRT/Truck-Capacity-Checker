@@ -55,13 +55,7 @@
             <tbody>
                 @php
                     $grouped = $upload->boxes->groupBy(['cargo_destination', 'customer_code', 'customer_name']);
-                    $maxVolumePerDestination = [];
-                    $truckCapacity = 16;
-                    
-                    // Hitung volume maksimum per destinasi
-                    foreach ($upload->boxes->groupBy('cargo_destination') as $dest => $boxes) {
-                        $maxVolumePerDestination[$dest] = $truckCapacity;
-                    }
+                    $truckCapacity = \App\Http\Controllers\UploadController::TRUCK_CAPACITY;
                 @endphp
 
                 @foreach ($grouped as $destination => $byCode)
@@ -77,7 +71,7 @@
                                     ->where('cargo_destination', $destination)
                                     ->sum('volume');
                                     
-                                $percentage = ($totalVolumePerDestination / $truckCapacity) * 100;
+                                $percentage = min(100, ($totalVolumePerDestination / $truckCapacity) * 100);
                                 
                                 $progressColor = 'bg-info';
                                 if ($percentage >= 80) {
@@ -110,7 +104,7 @@
                                 <td class="text-center-icon">
                                     <i class="bi bi-eye view-details" 
                                        data-bs-toggle="modal" 
-                                       data-bs-target="#detailModal{{ $destination }}_{{ $code }}"></i>
+                                       data-bs-target="#detailModal{{ md5($destination . '|' . $code) }}"></i>
                                 </td>
                             </tr>
                         @endforeach
@@ -123,7 +117,7 @@
     <!-- Modal untuk setiap destinasi -->
     @foreach ($grouped as $destination => $byCode)
         @foreach ($byCode as $code => $byName)
-            <div class="modal fade" id="detailModal{{ $destination }}_{{ $code }}" tabindex="-1">
+            <div class="modal fade" id="detailModal{{ md5($destination . '|' . $code) }}" tabindex="-1">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -162,6 +156,7 @@
         @endforeach
     @endforeach
 
+    <p class="text-muted mt-3 mb-0"><small>Catatan: Total Volume dan Rasio Pengisian hanya menghitung box <strong>Status 4</strong>; kesiapan kirim ≥ 80%.</small></p>
     <a href="/" class="btn btn-secondary mt-4">Upload Lagi</a>
 
     <!-- Tambahkan Bootstrap JS -->

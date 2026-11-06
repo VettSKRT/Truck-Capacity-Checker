@@ -8,8 +8,13 @@
     <h2>Upload File Excel</h2>
     <form action="{{ route('upload') }}" method="POST" enctype="multipart/form-data">
         @csrf
-        <input type="file" name="file" class="form-control" required>
+        <input type="file" name="excel_file" class="form-control @error('excel_file') is-invalid @enderror"
+               accept=".xlsx,.xls,.csv" required>
+        @error('excel_file')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
         <button type="submit" class="btn btn-primary mt-3">Upload</button>
+        <a href="{{ route('packing.index') }}" class="btn btn-secondary mt-3">Kembali</a>
     </form>
 </body>
 </html>

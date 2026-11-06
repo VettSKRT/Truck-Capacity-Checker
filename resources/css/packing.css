@@ -1,38 +1,68 @@
-.visualization-container {
-    height: 600px;
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-}
-
-.item-list {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.form-control:disabled, 
-.form-control[readonly] {
-    background-color: #e9ecef;
-}
-
+/* Custom styles for packing page */
 .item-card {
-    border-left: 4px solid;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
     margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
-.status-2 { border-left-color: #ffc107; }
-.status-3 { border-left-color: #17a2b8; }
-.status-4 { border-left-color: #28a745; }
+.item-card:hover {
+    background-color: #f8f9fa;
+    border-color: #007bff;
+}
 
 .item-card.selected {
-    border-width: 2px;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
 }
 
-.efficiency-progress {
-    height: 10px;
+.item-card.selected:hover {
+    background-color: #0056b3;
+}
+
+#visualization {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f8f9fa;
 }
 
 .efficiency-progress .progress-bar {
-    transition: width 0.3s ease-in-out;
+    transition: width 0.3s ease;
 }
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+} 
