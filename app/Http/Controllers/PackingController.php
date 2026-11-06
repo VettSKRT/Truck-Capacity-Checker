@@ -38,7 +38,10 @@ class PackingController extends Controller
         $skipped = [];
         $eps = 1e-9;
 
-        foreach ($boxes as $box) {
+        // Satu baris Box bisa berisi banyak karton identik (box_count): perluas jadi satuan karton
+        $units = $boxes->flatMap(fn ($box) => array_fill(0, max(1, $box->box_count), $box));
+
+        foreach ($units as $box) {
             $l = $box->panjang / 1000;
             $w = $box->lebar / 1000;
             $h = $box->tinggi / 1000;
@@ -78,7 +81,7 @@ class PackingController extends Controller
                 'width' => $w,
                 'height' => $h,
                 'status' => $box->status,
-                'volume' => $box->volume,
+                'volume' => $box->unit_volume,
             ];
 
             $x += $l;

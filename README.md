@@ -4,16 +4,17 @@ Aplikasi Laravel untuk mengecek kapasitas truk dengan visualisasi 3D real-time.
 
 ## Fitur
 
-### 1. Upload Excel Data
-- Upload file Excel (.xlsx, .xls) dengan data cargo
-- Format Excel yang diharapkan:
-  - Kolom A: Cargo Destination
-  - Kolom B: Customer Code  
-  - Kolom C: Customer Name
-  - Kolom D: Panjang (mm)
-  - Kolom E: Lebar (mm)
-  - Kolom F: Tinggi (mm)
-  - Kolom G: Status (2, 3, atau 4)
+### 1. Upload Order (Excel/CSV)
+- Dimensi karton dan berat diambil dari **master barang**, bukan dari file order.
+- Kolom file order (baris 1 = header):
+  - A: Cargo Destination
+  - B: Customer Code (kode dealer, mis. `SA38` = area `SA` + dealer `38`)
+  - C: Customer Name
+  - D: Part Number
+  - E: Qty (pcs)
+  - F: Status (1 Order Received, 2 Picking, 3 Checking/Packing, 4 Cargo Ready)
+  - G: Service Type (opsional: `same_day`, `one_day`, `emergency`; default `one_day`)
+- Qty dipecah otomatis: **Packing Unit** (box penuh) dan **Packing Receh** (sisa < qty per box).
 
 ### 2. Manual Entry
 - Input manual dimensi item (panjang, lebar, tinggi dalam meter)
@@ -40,18 +41,30 @@ Aplikasi Laravel untuk mengecek kapasitas truk dengan visualisasi 3D real-time.
 5. **Lihat hasil**: Visualisasi 3D akan update secara real-time
 6. **Halaman laporan**: setelah upload via form biasa (`/upload`), hasil ada di `/result/{id}`
 
-## Format Excel
+## Kendaraan & aturan muatan
 
-| Cargo Destination | Customer Code | Customer Name | Panjang (mm) | Lebar (mm) | Tinggi (mm) | Status |
-|------------------|---------------|---------------|--------------|------------|-------------|--------|
-| Jakarta          | CUST001       | PT ABC        | 1000         | 500        | 300         | 4      |
-| Surabaya         | CUST002       | PT XYZ        | 800          | 400        | 250         | 3      |
+| Kendaraan | Dimensi dalam (cm) | Volume | Muatan |
+|---|---|---|---|
+| CDE | 320 × 170 × 170 | 9,25 m³ | 3 ton |
+| CDD | 440 × 200 × 190 | 16,72 m³ | 6 ton |
+| Wing Box | 950 × 245 × 250 | 58,19 m³ | 17 ton |
+| Impor (kontainer 40' HC, estimasi) | 1203 × 235 × 269 | 76,05 m³ | 26 ton |
 
-## Status Items
+- Rasio muatan = nilai terbesar antara **rasio volume** dan **rasio berat** (mana yang tercapai lebih dulu).
+- Hanya box **Status 4 (Cargo Ready)** yang dihitung; siap kirim jika rasio >= 80%.
+- Karton **tidak boleh diputar** (P sejajar panjang kendaraan, L lebar, T tinggi).
+- Jalur 1-7 dari kode area, jalur 8 untuk Same Day dealer terpilih. **Isi mapping di `config/logistics.php`** (`area_routes`, `same_day_dealers`).
 
-- **Status 2**: Prioritas rendah (kuning)
-- **Status 3**: Prioritas menengah (biru)
-- **Status 4**: Prioritas tinggi (hijau)
+## Setup data
+
+```
+php artisan migrate
+php artisan db:seed                 # kendaraan, 25 karton, dan master barang CONTOH
+php artisan products:import sample_products.csv   # import/update master barang (ganti dengan data asli)
+```
+
+File contoh: `sample_data.csv` (order) dan `sample_products.csv` (master barang:
+Part Number, Name, Weight kg/pcs, No Karton, Qty per Box, Category small|heavy, Location).
 
 ## Teknologi
 
