@@ -1,6 +1,10 @@
-/* Cek Kapasitas Truk - halaman utama
- * Alur: pilih kendaraan -> unggah file -> POST /upload -> POST /packing/optimize -> tampilkan hasil.
- * Mengganti kendaraan atau cara hitung setelah unggah akan menghitung ulang otomatis. */
+/* Cek Kapasitas Truk
+ * Satu jalur = satu truk khusus ke satu tujuan. Satu kloter (satu file) berisi beberapa jalur,
+ * jadi kesiapan kirim dinilai PER JALUR.
+ *
+ * Alur: unggah file -> POST /upload -> GET /riwayat/{id}/jalur (kartu jalur)
+ *       -> pilih jalur -> POST /packing/optimize (muatan, rasio, tampilan 3D satu truk).
+ * Di halaman detail kloter, kartu jalur dimuat otomatis dari data yang tersimpan. */
 (function () {
     'use strict';
 
@@ -9,16 +13,19 @@
     const token = $('meta[name="csrf-token"]').content;
 
     const READY_RATIO = 0.8;
-    const ROUTE_COLORS = {
-        1: '#0057B8', 2: '#E4002B', 3: '#2E9E5B', 4: '#F2A900',
-        5: '#7A3FB0', 6: '#00A3AD', 7: '#8C5A2B', 8: '#C2255C',
-    };
-    const NO_ROUTE_COLOR = '#8A94A6';
+    // Satu tampilan 3D = satu truk, jadi karton diwarnai per dealer
+    const DEALER_COLORS = ['#0057B8', '#E4002B', '#2E9E5B', '#F2A900', '#7A3FB0', '#00A3AD', '#8C5A2B', '#C2255C', '#5B6B8C', '#E8590C'];
     const REASONS = {
-        weight: 'Melebihi batas berat kendaraan',
-        volume: 'Melebihi batas volume kendaraan',
+        weight: 'Melebihi batas berat truk',
+        volume: 'Melebihi batas volume truk',
         space: 'Tidak muat pada susunan',
-        too_big: 'Ukuran karton lebih besar dari kendaraan',
+        too_big: 'Ukuran karton lebih besar dari truk',
+    };
+    const STATE_UI = {
+        ready: { badge: 'is-ready', text: 'Siap dikirim', icon: 'bi-check-circle-fill' },
+        wait: { badge: 'is-wait', text: 'Belum siap', icon: 'bi-hourglass-split' },
+        over: { badge: 'is-over', text: 'Melebihi kapasitas', icon: 'bi-x-octagon-fill' },
+        none: { badge: 'is-muted', text: 'Belum ada barang siap', icon: 'bi-inbox' },
     };
     const CAMERAS = {
         iso: { eye: { x: 1.4, y: -1.9, z: 1.15 }, up: { x: 0, y: 0, z: 1 } },
@@ -27,14 +34,16 @@
         end: { eye: { x: -2.4, y: 0, z: 0.35 }, up: { x: 0, y: 0, z: 1 } },
     };
     const MAX_EDGE_BOXES = 2500; // di atas ini garis tepi karton dilewati agar tetap ringan
-    // Indeks segitiga kubus (urutan titik: lihat buildMeshes)
+    // Indeks segitiga kubus (urutan titik: lihat buildTraces)
     const CUBE_I = [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2];
     const CUBE_J = [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3];
     const CUBE_K = [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6];
 
     const clone = (o) => JSON.parse(JSON.stringify(o));
-    const state = { uploadId: null, mode: 'tetris', seq: 0, data: null, view: 'iso', file: null, cam: null, plotBound: false };
-    state.cam = clone(CAMERAS.iso);
+    const state = {
+        uploadId: null, routes: [], overall: null, routeKey: null,
+        mode: 'tetris', seq: 0, data: null, view: 'iso', file: null, cam: clone(CAMERAS.iso), plotBound: false,
+    };
 
     const el = {
         form: $('#checkForm'),
@@ -48,6 +57,10 @@
         messages: $('#messages'),
         empty: $('#emptyState'),
         results: $('#results'),
+        routeGrid: $('#routeGrid'),
+        routeDetail: $('#routeDetail'),
+        vehicleSelect: $('#routeVehicle'),
+        planLink: $('#planLink'),
     };
 
     /* ----------------------------- Utilitas ----------------------------- */
@@ -59,10 +72,7 @@
     }
     const pct = (ratio) => num(ratio * 100, 1) + '%';
     const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const routeColor = (r) => ROUTE_COLORS[r] || NO_ROUTE_COLOR;
-    const routeLabel = (r) => (r ? 'Jalur ' + r : 'Jalur belum diatur');
-    const routeChip = (r) => `<span class="route-chip"><span class="dot" style="--c:${routeColor(r)}"></span>${routeLabel(r)}</span>`;
-    const vehicleCode = () => ($('input[name="vehicle"]:checked') || {}).value;
+    const currentRoute = () => state.routes.find((r) => r.key === state.routeKey) || null;
 
     async function request(url, options = {}) {
         const res = await fetch(url, {
@@ -108,10 +118,8 @@
     /* ----------------------------- Form & file --------------------------- */
     // Hanya ada di halaman Cek Kapasitas (di detail kloter tidak ada formulir unggah)
     if (el.form) {
-
-        function setFile(file) {
+        const setFile = (file) => {
             if (file && !/\.(xlsx|xls|csv)$/i.test(file.name)) {
-                state.file = null;
                 showError('Format file tidak didukung. Gunakan file .xlsx, .xls, atau .csv.');
                 file = null;
             }
@@ -124,13 +132,13 @@
                 el.fileHint.textContent = `Ukuran ${num(state.file.size / 1024, 0)} KB. Klik untuk mengganti file.`;
                 el.submitHint.textContent = 'Siap diproses.';
             } else {
-                el.fileName.textContent = 'Klik di sini untuk memilih file';
-                el.fileHint.textContent = 'atau tarik file ke kotak ini (format .xlsx, .xls, atau .csv)';
+                el.fileName.textContent = 'Klik untuk memilih file';
+                el.fileHint.textContent = 'atau tarik file ke sini (.xlsx, .xls, atau .csv)';
                 el.submitHint.textContent = 'Pilih file dulu, lalu tombol ini aktif.';
             }
-        }
+        };
 
-        function setBusy(busy) {
+        const setBusy = (busy) => {
             el.submit.disabled = busy || !state.file;
             el.submitLabel.textContent = busy ? 'Sedang memeriksa' : 'Cek Kapasitas';
             const icon = $('i, .spin', el.submit);
@@ -138,18 +146,11 @@
                 icon.outerHTML = busy ? '<span class="spin" aria-hidden="true"></span>' : '<i class="bi bi-calculator" aria-hidden="true"></i>';
             }
             el.submitHint.textContent = busy ? 'Mohon tunggu sebentar.' : (state.file ? 'Siap diproses.' : 'Pilih file dulu, lalu tombol ini aktif.');
-        }
+        };
 
         el.input.addEventListener('change', () => setFile(el.input.files[0]));
-
-        ['dragenter', 'dragover'].forEach((ev) => el.dropzone.addEventListener(ev, (e) => {
-            e.preventDefault();
-            el.dropzone.classList.add('is-over');
-        }));
-        ['dragleave', 'drop'].forEach((ev) => el.dropzone.addEventListener(ev, (e) => {
-            e.preventDefault();
-            el.dropzone.classList.remove('is-over');
-        }));
+        ['dragenter', 'dragover'].forEach((ev) => el.dropzone.addEventListener(ev, (e) => { e.preventDefault(); el.dropzone.classList.add('is-over'); }));
+        ['dragleave', 'drop'].forEach((ev) => el.dropzone.addEventListener(ev, (e) => { e.preventDefault(); el.dropzone.classList.remove('is-over'); }));
         el.dropzone.addEventListener('drop', (e) => {
             if (e.dataTransfer.files.length) {
                 el.input.files = e.dataTransfer.files;
@@ -163,21 +164,19 @@
 
             clearMessages();
             // Hapus hasil lama agar tidak tertukar dengan hasil file yang baru (atau error-nya)
-            state.uploadId = null;
-            state.data = null;
+            state.uploadId = null; state.routes = []; state.routeKey = null; state.data = null;
             state.seq++;
             el.results.hidden = true;
-            el.empty.hidden = false;
+            if (el.empty) el.empty.hidden = false;
             setBusy(true);
             try {
                 const fd = new FormData();
                 fd.append('excel_file', state.file);
-                fd.append('vehicle', vehicleCode());
                 const up = await request('/upload', { method: 'POST', body: fd });
 
                 state.uploadId = up.upload_id;
                 showWarnings(up.warnings);
-                await optimize(true);
+                await loadRoutes(true);
             } catch (err) {
                 showError(err.message);
             } finally {
@@ -186,23 +185,149 @@
         });
     }
 
-    // Ganti kendaraan / cara hitung setelah ada hasil -> hitung ulang otomatis
-    $$('input[name="vehicle"]').forEach((r) => r.addEventListener('change', () => state.uploadId && optimize()));
     $$('input[name="mode"]').forEach((r) => r.addEventListener('change', () => {
         state.mode = r.value;
-        if (state.uploadId) optimize();
+        if (state.uploadId && state.routeKey) optimize();
     }));
+
+    // Ganti truk khusus untuk jalur yang sedang dilihat (tidak disimpan; truk default diatur di Pengaturan)
+    if (el.vehicleSelect) {
+        el.vehicleSelect.addEventListener('change', () => state.uploadId && state.routeKey && optimize());
+    }
+
+    /* ------------------------------ Kartu jalur -------------------------- */
+
+    async function loadRoutes(scroll = false) {
+        const data = await request(`/riwayat/${state.uploadId}/jalur`);
+        state.routes = data.routes;
+        state.overall = data.overall;
+
+        if (el.empty) el.empty.hidden = true;
+        el.results.hidden = false;
+        renderBatchBanner();
+        renderRouteGrid();
+
+        // Pertahankan jalur terpilih bila masih ada, jika tidak pilih jalur pertama yang punya muatan
+        let key = state.routeKey;
+        if (!state.routes.some((r) => r.key === key)) {
+            const first = state.routes.find((r) => r.route !== null && r.state !== 'none') || state.routes[0];
+            key = first ? first.key : null;
+        }
+        if (key === null) {
+            el.routeDetail.hidden = true;
+            return;
+        }
+        await selectRoute(key, scroll);
+    }
+
+    function renderBatchBanner() {
+        const o = state.overall;
+        const banner = $('#batchBanner');
+        let cls, icon, title, text;
+
+        switch (o.state) {
+            case 'ready':
+                cls = 'is-ready'; icon = 'bi-check-circle-fill';
+                title = `Semua ${o.active} jalur siap dikirim`;
+                text = 'Setiap jalur sudah mencapai batas minimal 80% dari truknya.';
+                break;
+            case 'partial':
+                cls = 'is-wait'; icon = 'bi-hourglass-split';
+                title = `${o.ready} dari ${o.active} jalur siap dikirim`;
+                text = `${o.wait} jalur belum cukup penuh. Jalur yang belum siap menunggu tambahan muatan.`;
+                break;
+            case 'over':
+                cls = 'is-over'; icon = 'bi-x-octagon-fill';
+                title = `${o.over} jalur melebihi kapasitas truk`;
+                text = 'Perlu truk tambahan atau pindahkan sebagian muatan jalur tersebut.';
+                break;
+            case 'wait':
+                cls = 'is-wait'; icon = 'bi-hourglass-split';
+                title = 'Belum ada jalur yang siap dikirim';
+                text = `${o.wait} jalur belum mencapai 80% dari truknya.`;
+                break;
+            default:
+                cls = 'is-wait'; icon = 'bi-inbox';
+                title = 'Belum ada barang siap';
+                text = 'Kloter ini belum memuat barang berstatus 4 (Cargo Ready).';
+        }
+        if (o.unrouted_cartons > 0) {
+            text += ` ${num(o.unrouted_cartons, 0)} karton belum punya jalur (kode area belum diatur di Pengaturan, Area dan Jalur).`;
+        }
+
+        banner.className = 'status-banner ' + cls;
+        $('#batchIcon').className = 'bi status-banner__icon ' + icon;
+        $('#batchTitle').textContent = title;
+        $('#batchText').textContent = text;
+    }
+
+    function renderRouteGrid() {
+        el.routeGrid.innerHTML = state.routes.map((r) => {
+            const ui = STATE_UI[r.state] || STATE_UI.none;
+            const fill = r.state === 'over' ? 'is-over' : (r.state === 'ready' ? 'is-ok' : '');
+            const unrouted = r.route === null;
+            const limit = r.binding === 'weight' ? 'dibatasi berat' : 'dibatasi volume';
+            const meta = r.state === 'none'
+                ? `${num(r.pending, 0)} karton belum berstatus 4`
+                : `${num(r.cartons, 0)} karton, ${num(r.dealers, 0)} dealer`;
+
+            return `
+            <button type="button" class="route-card is-${r.state}${unrouted ? ' is-unrouted' : ''}${r.key === state.routeKey ? ' is-selected' : ''}" data-key="${esc(r.key)}" aria-pressed="${r.key === state.routeKey}">
+                <span class="route-card__head">
+                    <strong>${esc(r.label)}</strong>
+                    <span class="badge-status ${ui.badge}">${ui.text}</span>
+                </span>
+                <span class="route-card__name">${esc(unrouted ? 'Kode area belum diatur' : (r.name || 'Tujuan belum diisi'))}</span>
+                <span class="route-card__truck"><i class="bi bi-truck" aria-hidden="true"></i> ${esc(r.vehicle ? r.vehicle.name : '-')}</span>
+                <span class="minibar route-card__bar" title="Volume ${pct(r.volume_ratio)}, berat ${pct(r.weight_ratio)}">
+                    <span class="minibar__track"><span class="minibar__fill ${fill}" style="width:${Math.min(100, r.ratio * 100)}%"></span></span>
+                    <b>${r.state === 'none' ? '-' : pct(r.ratio)}</b>
+                </span>
+                <span class="route-card__meta">${meta}${r.state !== 'none' ? `, ${limit}` : ''}</span>
+            </button>`;
+        }).join('');
+    }
+
+    el.routeGrid && el.routeGrid.addEventListener('click', (e) => {
+        const card = e.target.closest('.route-card');
+        if (card) selectRoute(card.dataset.key, false);
+    });
+
+    async function selectRoute(key, scroll) {
+        state.routeKey = key;
+        const r = currentRoute();
+        $$('.route-card', el.routeGrid).forEach((c) => {
+            const on = c.dataset.key === key;
+            c.classList.toggle('is-selected', on);
+            c.setAttribute('aria-pressed', on);
+        });
+
+        el.routeDetail.hidden = false;
+        $('#routeTitle').textContent = r.label + (r.name ? `: ${r.name}` : '');
+        // Truk default jalur ini
+        if (el.vehicleSelect && r.vehicle) el.vehicleSelect.value = r.vehicle.code;
+        // Cetak rencana muat hanya untuk jalur bernomor yang punya karton
+        el.planLink.hidden = r.route === null;
+        if (r.route !== null) el.planLink.href = `/riwayat/${state.uploadId}/jalur/${r.key}/rencana-muat`;
+
+        await optimize(scroll);
+    }
 
     /* ----------------------------- Hitung & tampil ----------------------- */
 
     async function optimize(scroll = false) {
         const seq = ++state.seq;
-        el.results.classList.add('is-loading');
+        el.routeDetail.classList.add('is-loading');
         try {
             const data = await request('/packing/optimize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ upload_id: state.uploadId, mode: state.mode, vehicle: vehicleCode() }),
+                body: JSON.stringify({
+                    upload_id: state.uploadId,
+                    route: state.routeKey,
+                    mode: state.mode,
+                    vehicle: el.vehicleSelect ? el.vehicleSelect.value : undefined,
+                }),
             });
             if (seq !== state.seq) return; // ada permintaan yang lebih baru
             state.data = data;
@@ -214,14 +339,11 @@
         } catch (err) {
             if (seq === state.seq) showError(err.message);
         } finally {
-            if (seq === state.seq) el.results.classList.remove('is-loading');
+            if (seq === state.seq) el.routeDetail.classList.remove('is-loading');
         }
     }
 
     function render(data) {
-        if (el.empty) el.empty.hidden = true;
-        el.results.hidden = false;
-
         renderBanner(data);
         renderMeters(data);
         renderStats(data);
@@ -233,26 +355,27 @@
     function renderBanner(data) {
         const d = data.demand;
         const v = data.vehicle;
+        const label = data.route ? data.route.label : 'Jalur ini';
         const unloaded = data.summary.unloaded_count;
         const banner = $('#statusBanner');
         let cls, icon, title, text;
 
         if (d.carton_count === 0) {
             cls = 'is-wait'; icon = 'bi-inbox';
-            title = 'Belum ada barang siap';
-            text = 'File ini belum memuat barang berstatus 4 (Cargo Ready).';
+            title = `${label}: belum ada barang siap`;
+            text = 'Jalur ini belum memuat barang berstatus 4 (Cargo Ready).';
         } else if (d.over_capacity) {
             cls = 'is-over'; icon = 'bi-x-octagon-fill';
-            title = 'Melebihi kapasitas';
-            text = `Muatan ${pct(d.ratio)} dari ${v.name}. Perlu kendaraan tambahan atau kurangi muatan.`;
+            title = `${label} melebihi kapasitas`;
+            text = `Muatan ${pct(d.ratio)} dari truk ${v.name}. Perlu truk tambahan atau pindahkan sebagian muatan.`;
         } else if (d.ready) {
             cls = 'is-ready'; icon = 'bi-check-circle-fill';
-            title = 'Siap dikirim';
-            text = `Muatan ${pct(d.ratio)} dari ${v.name}. Batas minimal 80% sudah terpenuhi.`;
+            title = `${label} siap dikirim`;
+            text = `Muatan ${pct(d.ratio)} dari truk ${v.name}. Batas minimal 80% sudah terpenuhi.`;
         } else {
             cls = 'is-wait'; icon = 'bi-hourglass-split';
-            title = 'Belum siap dikirim';
-            text = `Muatan baru ${pct(d.ratio)} dari ${v.name}. Minimal 80%, kurang ${pct(READY_RATIO - d.ratio)} lagi.`;
+            title = `${label} belum siap dikirim`;
+            text = `Muatan baru ${pct(d.ratio)} dari truk ${v.name}. Minimal 80%, kurang ${pct(READY_RATIO - d.ratio)} lagi.`;
         }
         if (unloaded > 0 && !d.over_capacity && d.carton_count > 0) {
             text += ` Ada ${unloaded} karton yang tidak muat pada susunan.`;
@@ -262,7 +385,6 @@
         $('#statusIcon').className = 'bi status-banner__icon ' + icon;
         $('#statusTitle').textContent = title;
         $('#statusText').textContent = text;
-        $('#reportLink').href = '/result/' + data.upload.id;
     }
 
     function setMeter(root, ratio, text, isBinding) {
@@ -285,36 +407,36 @@
 
     function renderStats(data) {
         const all = data.items.concat(data.unloaded);
+        const r = currentRoute();
         $('#statLoaded').textContent = num(data.summary.loaded_count, 0);
         $('#statUnloaded').textContent = num(data.summary.unloaded_count, 0);
         $('#statUnloadedBox').classList.toggle('is-alert', data.summary.unloaded_count > 0);
         $('#statDealers').textContent = new Set(all.map((i) => i.customer_code).filter(Boolean)).size;
-        $('#statRoutes').textContent = new Set(all.map((i) => i.route).filter(Boolean)).size;
+        $('#statPending').textContent = num(r ? r.pending : 0, 0);
     }
 
     function renderDealers(items) {
         const groups = new Map();
         items.forEach((i) => {
-            const key = (i.route || 99) + '|' + (i.customer_code || '');
-            const g = groups.get(key) || { route: i.route, code: i.customer_code, name: i.customer_name, dest: i.cargo_destination, n: 0, vol: 0, kg: 0 };
+            const key = i.customer_code || '';
+            const g = groups.get(key) || { code: i.customer_code, name: i.customer_name, dest: i.cargo_destination, n: 0, vol: 0, kg: 0 };
             g.n += 1; g.vol += i.volume; g.kg += i.weight_kg;
             groups.set(key, g);
         });
-        const rows = Array.from(groups.values()).sort((a, b) => (a.route || 99) - (b.route || 99) || String(a.code).localeCompare(String(b.code)));
+        const rows = Array.from(groups.values()).sort((a, b) => String(a.code).localeCompare(String(b.code)));
 
         $('#dealerRows').innerHTML = rows.length ? rows.map((g) => `
             <tr>
-                <td>${routeChip(g.route)}</td>
-                <td><strong>${esc(g.code || '-')}</strong><br><small class="text-muted">${esc(g.name || '')}</small></td>
+                <td><span class="dot" style="--c:${dealerColor(g.code)}"></span> <strong>${esc(g.code || '-')}</strong><br><small class="text-muted">${esc(g.name || '')}</small></td>
                 <td>${esc(g.dest || '-')}</td>
                 <td class="num">${num(g.n, 0)}</td>
                 <td class="num">${num(g.vol, 3)}</td>
                 <td class="num">${num(g.kg, 1)}</td>
-            </tr>`).join('') : '<tr><td colspan="6" class="empty-state">Belum ada karton yang termuat.</td></tr>';
+            </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Belum ada karton yang termuat.</td></tr>';
 
         const tot = rows.reduce((t, g) => ({ n: t.n + g.n, vol: t.vol + g.vol, kg: t.kg + g.kg }), { n: 0, vol: 0, kg: 0 });
         $('#dealerFoot').innerHTML = rows.length
-            ? `<tr><td colspan="3">Total</td><td class="num">${num(tot.n, 0)}</td><td class="num">${num(tot.vol, 3)}</td><td class="num">${num(tot.kg, 1)}</td></tr>` : '';
+            ? `<tr><td colspan="2">Total</td><td class="num">${num(tot.n, 0)}</td><td class="num">${num(tot.vol, 3)}</td><td class="num">${num(tot.kg, 1)}</td></tr>` : '';
     }
 
     function renderUnloaded(list) {
@@ -344,6 +466,13 @@
 
     /* -------------------------------- 3D -------------------------------- */
 
+    // Warna per dealer, urutan tetap berdasarkan kode dealer pada data yang tampil
+    let dealerIndex = new Map();
+    function dealerColor(code) {
+        if (!dealerIndex.has(code)) dealerIndex.set(code, dealerIndex.size);
+        return DEALER_COLORS[dealerIndex.get(code) % DEALER_COLORS.length];
+    }
+
     function boxEdges(x0, y0, z0, x1, y1, z1, X, Y, Z) {
         const p = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
         // 12 rusuk, tiap rusuk diakhiri null agar garis terputus
@@ -356,20 +485,20 @@
         const v = data.vehicle;
         const traces = [];
 
-        // Rangka kendaraan
+        // Rangka truk
         const cx = [], cy = [], cz = [];
         boxEdges(0, 0, 0, v.length, v.width, v.height, cx, cy, cz);
         traces.push({ type: 'scatter3d', mode: 'lines', x: cx, y: cy, z: cz, line: { color: '#00439B', width: 5 }, hoverinfo: 'skip', showlegend: false });
 
-        // Satu mesh per jalur
+        // Satu mesh per dealer
         const groups = new Map();
         data.items.forEach((it) => {
-            const key = it.route || 0;
+            const key = it.customer_code || '';
             if (!groups.has(key)) groups.set(key, []);
             groups.get(key).push(it);
         });
 
-        groups.forEach((list, route) => {
+        groups.forEach((list, code) => {
             const x = [], y = [], z = [], i = [], j = [], k = [];
             list.forEach((it, n) => {
                 const x0 = it.x, x1 = it.x + it.length, y0 = it.y, y1 = it.y + it.width, z0 = it.z, z1 = it.z + it.height;
@@ -381,9 +510,9 @@
             });
             traces.push({
                 type: 'mesh3d', x, y, z, i, j, k,
-                color: routeColor(route), opacity: 1, flatshading: true,
+                color: dealerColor(code), opacity: 1, flatshading: true,
                 lighting: { ambient: 0.72, diffuse: 0.65, specular: 0.05, roughness: 0.9 },
-                name: `${routeLabel(route)}: ${list.length} karton`, hoverinfo: 'name', showlegend: false,
+                name: `${code || 'Tanpa dealer'}: ${list.length} karton`, hoverinfo: 'name', showlegend: false,
             });
         });
 
@@ -398,10 +527,9 @@
 
     function renderLegend(items) {
         const counts = new Map();
-        items.forEach((i) => counts.set(i.route || 0, (counts.get(i.route || 0) || 0) + 1));
-        const keys = Array.from(counts.keys()).sort((a, b) => (a || 99) - (b || 99));
-        $('#legend').innerHTML = keys.map((r) =>
-            `<span class="legend__item"><span class="dot" style="--c:${routeColor(r)}"></span>${routeLabel(r)} (${num(counts.get(r), 0)})</span>`).join('');
+        items.forEach((i) => counts.set(i.customer_code || '', (counts.get(i.customer_code || '') || 0) + 1));
+        $('#legend').innerHTML = Array.from(counts.keys()).sort().map((code) =>
+            `<span class="legend__item"><span class="dot" style="--c:${dealerColor(code)}"></span>${esc(code || 'Tanpa dealer')} (${num(counts.get(code), 0)})</span>`).join('');
     }
 
     function plotLayout() {
@@ -424,6 +552,9 @@
         $('#view3d').hidden = isRatio;
         $('#ratioNote').hidden = !isRatio;
         if (isRatio) return;
+
+        dealerIndex = new Map();
+        Array.from(new Set(data.items.map((i) => i.customer_code || ''))).sort().forEach((c) => dealerColor(c));
 
         renderLegend(data.items);
         Plotly.react('plot', buildTraces(data), plotLayout(), { responsive: true, displaylogo: false, displayModeBar: false });
@@ -470,9 +601,10 @@
             Plotly.Plots.resize('plot');
         }
     });
-    // Detail kloter: hasil dimuat otomatis dari data yang tersimpan
+
+    // Detail kloter: kartu jalur dimuat otomatis dari data yang tersimpan
     if (el.results.dataset.uploadId) {
         state.uploadId = Number(el.results.dataset.uploadId);
-        optimize();
+        loadRoutes().catch((err) => showError(err.message));
     }
 })();

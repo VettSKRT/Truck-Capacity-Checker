@@ -9,16 +9,13 @@
 @endsection
 
 @section('content')
-<section class="panel">
-    <span class="field-label">Kendaraan (ganti untuk menghitung ulang)</span>
-    @include('partials.vehicle-picker', ['vehicles' => $vehicles, 'selected' => $upload->vehicle?->code])
-</section>
-
 <div id="messages" aria-live="polite"></div>
 
-@include('partials.schedule-panel', ['upload' => $upload, 'schedule' => $schedule, 'shipments' => $shipments])
-
 @include('partials.results', ['uploadId' => $upload->id])
+
+<div class="mt-3">
+    @include('partials.schedule-panel', ['upload' => $upload, 'schedule' => $schedule, 'shipments' => $shipments])
+</div>
 @endsection
 
 @push('scripts')

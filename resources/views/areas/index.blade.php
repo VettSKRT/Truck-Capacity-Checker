@@ -5,13 +5,50 @@
 @section('subheading', 'Kode area adalah huruf di depan kode dealer (SA pada SA38). Atur jalur dan wilayahnya di sini.')
 
 @section('content')
-@php $routeNums = range(1, 7); @endphp
+@php
+    $routeNums = range(1, 7);
+    $routeNames = $routeSettings->pluck('name', 'route');
+    $routeLabel = fn ($n) => 'Jalur ' . $n . ($routeNames[$n] ?? null ? ' (' . $routeNames[$n] . ')' : '');
+@endphp
 
 <ul class="how-to mb-3">
-    <li><strong>Jalur 1 sampai 7</strong>Jalur pengiriman berdasarkan kode area. Warna di tampilan 3D mengikuti jalur ini.</li>
-    <li><strong>Wilayah</strong>Jawa dan Sumatra (selain Aceh) dikirim harian. Aceh dan luar pulau mengikuti jadwal kapal.</li>
+    <li><strong>Satu jalur = satu truk</strong>Setiap jalur adalah satu truk khusus ke satu tujuan (mis. Jalur 1 ke Jabodetabek). Muatan satu jalur tidak dicampur dengan jalur lain.</li>
+    <li><strong>Kode area ke jalur</strong>Dealer masuk ke jalur menurut kode areanya (SA pada SA38). Wilayah menentukan pengiriman harian atau jadwal kapal.</li>
     <li><strong>Jalur 8 (Same Day)</strong>Khusus dealer terpilih. Atur di menu <a href="{{ route('dealers.index', ['moq' => 'sameday']) }}">Dealer dan MOQ</a>.</li>
 </ul>
+
+<form method="POST" action="{{ route('areas.routes') }}" class="panel panel--flush">
+    @csrf @method('PUT')
+    <div class="panel__head p-3 pb-0 mb-2">
+        <h2 class="panel__title">Jalur dan truk</h2>
+        <span class="panel__hint">Nama tujuan dan truk default tiap jalur. Kesiapan kirim dinilai terhadap truk ini.</span>
+    </div>
+    <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+        <table class="table-clean">
+            <thead><tr><th>Jalur</th><th>Tujuan</th><th>Truk default</th></tr></thead>
+            <tbody>
+                @foreach ($routeSettings as $rs)
+                    <tr>
+                        <td class="nowrap"><strong>Jalur {{ $rs->route }}</strong>@if ($rs->route === 8) <small>(Same Day)</small>@endif</td>
+                        <td><input type="text" class="form-control" name="routes[{{ $rs->route }}][name]" value="{{ $rs->name }}" maxlength="60" placeholder="mis. Jabodetabek" aria-label="Tujuan jalur {{ $rs->route }}"></td>
+                        <td>
+                            <select class="form-select" name="routes[{{ $rs->route }}][vehicle_id]" aria-label="Truk default jalur {{ $rs->route }}">
+                                <option value="">Default ({{ config('logistics.default_vehicle') }})</option>
+                                @foreach ($vehicles as $v)
+                                    <option value="{{ $v->id }}" @selected($rs->vehicle_id === $v->id)>{{ $v->name }} ({{ number_format($v->volume_m3, 2, ',', '.') }} m³, {{ number_format($v->max_payload_kg, 0, ',', '.') }} kg)</option>
+                                @endforeach
+                            </select>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    <div class="sticky-save">
+        <button class="btn-cta" type="submit"><i class="bi bi-check-lg" aria-hidden="true"></i> Simpan jalur</button>
+        <span class="text-muted">Perubahan truk langsung memengaruhi rasio isi di semua kloter.</span>
+    </div>
+</form>
 
 @if ($unknown->isNotEmpty())
     <div class="notice notice--warn">
@@ -54,7 +91,7 @@
                                     <select class="form-select" name="areas[{{ $a->id }}][route]" aria-label="Jalur area {{ $a->code }}">
                                         <option value="">Belum diatur</option>
                                         @foreach ($routeNums as $n)
-                                            <option value="{{ $n }}" @selected($a->route === $n)>Jalur {{ $n }}</option>
+                                            <option value="{{ $n }}" @selected($a->route === $n)>{{ $routeLabel($n) }}</option>
                                         @endforeach
                                     </select>
                                 </td>
@@ -110,7 +147,7 @@
             <label class="field-label" for="route">Jalur</label>
             <select class="form-select" id="route" name="route">
                 <option value="">Belum diatur</option>
-                @foreach ($routeNums as $n)<option value="{{ $n }}" @selected((string) old('route') === (string) $n)>Jalur {{ $n }}</option>@endforeach
+                @foreach ($routeNums as $n)<option value="{{ $n }}" @selected((string) old('route') === (string) $n)>{{ $routeLabel($n) }}</option>@endforeach
             </select>
         </div>
         <div>

@@ -17,12 +17,12 @@
         <div class="dash-stat__label">Kloter hari ini</div>
     </div>
     <div class="dash-stat dash-stat--ok">
-        <div class="dash-stat__value">{{ $stats['ready_today'] }}</div>
-        <div class="dash-stat__label">Siap dikirim</div>
+        <div class="dash-stat__value">{{ $stats['routes_ready'] }}</div>
+        <div class="dash-stat__label">Jalur siap dikirim hari ini</div>
     </div>
     <div class="dash-stat dash-stat--wait">
-        <div class="dash-stat__value">{{ $stats['wait_today'] }}</div>
-        <div class="dash-stat__label">Perlu tindakan (belum siap atau melebihi)</div>
+        <div class="dash-stat__value">{{ $stats['routes_attention'] }}</div>
+        <div class="dash-stat__label">Jalur belum siap atau melebihi</div>
     </div>
     <div class="dash-stat dash-stat--neutral">
         <div class="dash-stat__value">{{ $fmt($stats['cartons_today'], 0) }}</div>
@@ -76,7 +76,7 @@
             Belum ada kloter. Mulai dengan <a href="{{ route('packing.index') }}">Cek Kapasitas</a> dan unggah file order.
         </div>
     @else
-        @include('batches._table', ['batches' => $recent, 'compact' => true])
+        @include('batches._table', ['batches' => $recent, 'summaries' => $summaries, 'compact' => true])
     @endif
 </section>
 @endsection

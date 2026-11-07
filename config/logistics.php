@@ -52,18 +52,19 @@ return [
      |   'BD' => 2,
      */
     'area_routes' => [
-        // CONTOH untuk data sample (sample_data.csv dan sample_data_lengkap.csv).
-        // TODO: ganti dengan kode area asli begitu diketahui; kode yang tidak terdaftar tampil abu-abu.
-        'SA' => 1,
-        'SB' => 2,
-        'SC' => 3,
-        'SD' => 4,
-        'SE' => 5,
-        'SF' => 6,
-        'SG' => 7,
-        'SJ' => 5,
+        // CONTOH untuk data sample. Satu jalur = satu truk ke satu tujuan.
+        // TODO: ganti dengan kode area asli lewat menu Pengaturan, Area dan Jalur.
+        'SA' => 1,  // Jabodetabek
+        'SC' => 2,  // Jawa Tengah
+        'SB' => 3,  // Jawa Barat
+        'SH' => 3,  // Cirebon (Jawa Barat)
+        'SD' => 4,  // Jawa Timur
+        'SE' => 4,
+        'SF' => 5,  // Sumatra
+        'SG' => 5,
+        'SJ' => 6,  // Luar pulau (pelabuhan)
         'SK' => 6,
-        'SL' => 7,
+        'SL' => 6,
     ],
 
     /*

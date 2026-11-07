@@ -7,6 +7,7 @@ use App\Models\Upload;
 use App\Models\Vehicle;
 use App\Services\LoadCalculator;
 use App\Services\PackingService;
+use App\Services\RouteLoadService;
 use Illuminate\Http\Request;
 
 class PackingController extends Controller
@@ -16,39 +17,50 @@ class PackingController extends Controller
 
     public function index()
     {
-        return view('packing.index', ['vehicles' => Vehicle::orderBy('id')->get()]);
+        return view('packing.index');
     }
 
     /**
-     * Susun muatan sebuah upload ke dalam kendaraan.
+     * Susun muatan SATU JALUR (satu truk) dari sebuah kloter.
      *
      * Parameter:
      *  - upload_id  (wajib)
+     *  - route      nomor jalur 1-8, atau "none" untuk karton tanpa jalur (kosong = seluruh kloter)
      *  - mode       ratio | tetris (default tetris)
-     *  - vehicle    kode kendaraan (default: kendaraan pada upload)
+     *  - vehicle    kode truk untuk menimpa truk default jalur (opsional, tidak disimpan)
      *  - only_ready true (default) = hanya Status 4 / Cargo Ready; false = semua status
      *
      * Semua dimensi pada respons dalam METER.
      */
-    public function optimize(Request $request, PackingService $packing, LoadCalculator $calculator)
+    public function optimize(Request $request, PackingService $packing, LoadCalculator $calculator, RouteLoadService $loads)
     {
         $data = $request->validate([
             'upload_id' => 'required|integer|exists:uploads,id',
+            'route' => ['nullable', 'regex:/^([1-8]|none)$/'],
             'mode' => 'nullable|in:' . implode(',', PackingService::MODES),
             'vehicle' => 'nullable|string|exists:vehicles,code',
             'only_ready' => 'nullable|boolean',
         ]);
 
-        $upload = Upload::with('vehicle')->findOrFail($data['upload_id']);
-        $vehicle = isset($data['vehicle'])
+        $upload = Upload::findOrFail($data['upload_id']);
+        $routeKey = $data['route'] ?? null;
+        $routeNumber = ($routeKey !== null && $routeKey !== 'none') ? (int) $routeKey : null;
+
+        // Truk: pilihan manual, atau truk default jalur ini
+        $vehicle = ! empty($data['vehicle'])
             ? Vehicle::where('code', $data['vehicle'])->first()
-            : ($upload->vehicle ?? Vehicle::where('code', config('logistics.default_vehicle'))->first());
+            : $loads->vehicleForRoute($routeNumber);
 
         if (! $vehicle) {
             return response()->json(['success' => false, 'message' => 'Data kendaraan belum ada. Jalankan: php artisan db:seed'], 422);
         }
 
         $query = Box::where('upload_id', $upload->id)->orderBy('id');
+        if ($routeKey === 'none') {
+            $query->whereNull('route');
+        } elseif ($routeNumber !== null) {
+            $query->where('route', $routeNumber);
+        }
         if ($request->boolean('only_ready', true)) {
             $query->where('status', config('logistics.cargo_ready_status', 4));
         }
@@ -62,7 +74,7 @@ class PackingController extends Controller
             ], 422);
         }
 
-        // Kebutuhan muatan: seluruh karton yang diminta dibanding kapasitas kendaraan
+        // Kebutuhan muatan: seluruh karton jalur ini dibanding kapasitas truknya
         $demandVolume = array_sum(array_map(fn ($u) => $u['l'] * $u['w'] * $u['h'] / 1e9, $units));
         $demandWeight = array_sum(array_column($units, 'weight'));
         $demand = $calculator->summarize($demandVolume, $demandWeight, $vehicle->volume_m3, $vehicle->max_payload_kg) + [
@@ -84,6 +96,12 @@ class PackingController extends Controller
         return response()->json([
             'success' => true,
             'mode' => $result['mode'],
+            'route' => $routeKey === null ? null : [
+                'key' => $routeKey,
+                'number' => $routeNumber,
+                'label' => $routeNumber === null ? 'Tanpa jalur' : 'Jalur ' . $routeNumber,
+                'name' => $loads->routeName($routeNumber),
+            ],
             'vehicle' => [
                 'code' => $vehicle->code,
                 'name' => $vehicle->name,
@@ -93,7 +111,7 @@ class PackingController extends Controller
                 'volume_m3' => round($vehicle->volume_m3, 3),
                 'max_payload_kg' => $vehicle->max_payload_kg,
             ],
-            'upload' => ['id' => $upload->id, 'filename' => $upload->filename],
+            'upload' => ['id' => $upload->id, 'code' => $upload->code, 'filename' => $upload->filename],
             'demand' => $demand,
             'summary' => $result['summary'],
             // Mode rasio tidak punya posisi 3D (x,y,z = null)

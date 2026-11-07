@@ -19,7 +19,8 @@ class LoadCalculator
      * @param float $weightKg        total berat muatan (kg)
      * @param float $vehicleVolumeM3 volume efektif kendaraan (m³)
      * @param float $vehicleMaxKg    kapasitas muatan kendaraan (kg)
-     * @return array{volume_ratio:float, weight_ratio:float, ratio:float, binding:string, ready:bool, over_capacity:bool}
+     * @return array{volume_ratio:float, weight_ratio:float, ratio:float, binding:string, ready:bool, over_capacity:bool, state:string}
+     *   state: over (> 100%), ready (>= batas siap kirim), atau wait (belum cukup penuh)
      */
     public function summarize(float $volumeM3, float $weightKg, float $vehicleVolumeM3, float $vehicleMaxKg): array
     {
@@ -36,6 +37,7 @@ class LoadCalculator
             'binding' => $binding,
             'ready' => $ratio >= $this->readyRatio,
             'over_capacity' => $ratio > 1.0,
+            'state' => $ratio > 1.0 ? 'over' : ($ratio >= $this->readyRatio ? 'ready' : 'wait'),
         ];
     }
 

@@ -6,35 +6,28 @@
 
 @section('content')
 <form id="checkForm" class="panel" novalidate>
-    <div class="mb-3">
-        <span class="field-label">Kendaraan</span>
-        @include('partials.vehicle-picker', ['vehicles' => $vehicles])
-    </div>
+    <span class="field-label">File order</span>
+    <label class="dropzone" id="dropzone" for="excel_file">
+        <i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i>
+        <span class="dropzone__text">
+            <span class="dropzone__main" id="fileName">Klik untuk memilih file</span>
+            <span class="dropzone__hint" id="fileHint">atau tarik file ke sini (.xlsx, .xls, atau .csv)</span>
+        </span>
+        <input type="file" class="visually-hidden" id="excel_file" name="excel_file" accept=".xlsx,.xls,.csv">
+    </label>
 
-    <div>
-        <span class="field-label">File order</span>
-        <label class="dropzone" id="dropzone" for="excel_file">
-            <i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i>
-            <span class="dropzone__text">
-                <span class="dropzone__main" id="fileName">Klik untuk memilih file</span>
-                <span class="dropzone__hint" id="fileHint">atau tarik file ke sini (.xlsx, .xls, atau .csv)</span>
-            </span>
-            <input type="file" class="visually-hidden" id="excel_file" name="excel_file" accept=".xlsx,.xls,.csv">
-        </label>
-
-        <details class="format-help">
-            <summary>Urutan kolom yang dibutuhkan</summary>
-            <ol>
-                <li>Cargo Destination (tujuan)</li>
-                <li>Customer Code (kode dealer, contoh SA38)</li>
-                <li>Customer Name (nama dealer)</li>
-                <li>Part Number</li>
-                <li>Qty (jumlah pcs)</li>
-                <li>Status (1 sampai 4, hanya status 4 yang dihitung siap kirim)</li>
-                <li>Service Type (boleh kosong: same_day, one_day, atau emergency)</li>
-            </ol>
-        </details>
-    </div>
+    <details class="format-help">
+        <summary>Urutan kolom yang dibutuhkan</summary>
+        <ol>
+            <li>Cargo Destination (tujuan)</li>
+            <li>Customer Code (kode dealer, contoh SA38)</li>
+            <li>Customer Name (nama dealer)</li>
+            <li>Part Number</li>
+            <li>Qty (jumlah pcs)</li>
+            <li>Status (1 sampai 4, hanya status 4 yang dihitung siap kirim)</li>
+            <li>Service Type (boleh kosong: same_day, one_day, atau emergency)</li>
+        </ol>
+    </details>
 
     <div class="action-row">
         <button type="submit" class="btn-cta" id="submitBtn" disabled>
@@ -50,9 +43,9 @@
 <section class="panel" id="emptyState">
     <h2 class="mb-2">Cara membaca hasil</h2>
     <ul class="how-to">
-        <li><strong>Status di atas</strong>Hijau berarti siap dikirim, kuning berarti belum cukup penuh, merah berarti melebihi kendaraan.</li>
-        <li><strong>Dua batang ukur</strong>Volume dan berat dihitung terpisah. Yang lebih dulu penuh menjadi penentu.</li>
-        <li><strong>Tampilan 3D</strong>Susunan karton di dalam kendaraan, berat di bawah dan ringan di atas.</li>
+        <li><strong>Satu jalur, satu truk</strong>Setiap jalur adalah satu truk khusus ke satu tujuan (mis. Jabodetabek). Tiap jalur dicek sendiri terhadap truknya.</li>
+        <li><strong>Hijau, kuning, merah</strong>Hijau berarti siap dikirim (80% atau lebih), kuning berarti belum cukup penuh, merah berarti melebihi truk.</li>
+        <li><strong>Rencana muat</strong>Pilih satu jalur untuk melihat susunan 3D dan mencetak rencana muatnya.</li>
     </ul>
 </section>
 

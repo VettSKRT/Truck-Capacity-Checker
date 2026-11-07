@@ -135,7 +135,7 @@
                             <td>{{ \Illuminate\Support\Str::limit($u->filename, 30) }}</td>
                             <td class="nowrap">{{ $a['send_date']?->translatedFormat('D, d M Y') }}<br><small>{{ $a['send_label'] }}</small></td>
                             <td class="num">{{ count($a['dealers']) }}</td>
-                            <td>@include('partials.status-badge', ['upload' => $u])</td>
+                            <td>@include('partials.batch-status', ['overall' => $row['overall']])</td>
                             <td class="actions"><a class="btn-soft btn-soft--sm" href="{{ route('batches.show', $u) }}">Buka</a></td>
                         </tr>
                     @endforeach

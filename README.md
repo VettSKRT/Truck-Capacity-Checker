@@ -1,61 +1,49 @@
 # Truck Capacity Checker
 
-Aplikasi Laravel untuk mengecek kapasitas truk dengan visualisasi 3D real-time.
+Aplikasi Laravel untuk mengecek kesiapan muatan truk di gudang, dengan tampilan 3D susunan karton.
 
-## Fitur
+## Konsep utama
 
-### 1. Upload Order (Excel/CSV)
-- Dimensi karton dan berat diambil dari **master barang**, bukan dari file order.
-- Kolom file order (baris 1 = header):
-  - A: Cargo Destination
-  - B: Customer Code (kode dealer, mis. `SA38` = area `SA` + dealer `38`)
-  - C: Customer Name
-  - D: Part Number
-  - E: Qty (pcs)
-  - F: Status (1 Order Received, 2 Picking, 3 Checking/Packing, 4 Cargo Ready)
-  - G: Service Type (opsional: `same_day`, `one_day`, `emergency`; default `one_day`)
-- Qty dipecah otomatis: **Packing Unit** (box penuh) dan **Packing Receh** (sisa < qty per box).
+- **Satu jalur = satu truk khusus ke satu tujuan.** Contoh: Jalur 1 ke Jabodetabek, Jalur 2 ke Jawa Tengah.
+  Muatan satu jalur tidak dicampur dengan jalur lain (truk ke Jabodetabek tidak dialihkan ke Surabaya).
+- **Satu kali unggah file order = satu kloter** (tabel `uploads`). Satu kloter berisi beberapa jalur.
+- **Kesiapan kirim dinilai PER JALUR** terhadap truk jalur itu: rasio = nilai terbesar antara rasio volume dan rasio berat
+  (mana yang tercapai lebih dulu). Siap dikirim jika >= 80%, melebihi kapasitas jika > 100%. Hanya karton **Status 4 (Cargo Ready)** dihitung.
+- Jalur 1-7 ditentukan dari **kode area** dealer (`SA` pada `SA38`). Jalur 8 untuk dealer **Same Day** terpilih.
+- Nama tujuan dan **truk default tiap jalur** diatur di menu Pengaturan (Area dan Jalur). Truk bisa diganti sementara per jalur saat melihat hasil.
+- **Rencana muat** per jalur bisa dicetak untuk sopir dan gudang.
 
-### 2. Manual Entry
-- Input manual dimensi item (panjang, lebar, tinggi dalam meter)
-- Pilih status item (Status 2, 3, atau 4)
+## Upload order (Excel/CSV)
 
-### 3. 3D Visualization
-- Visualisasi 3D real-time menggunakan Plotly.js
-- Container 16m × 1m × 1m
-- Item cards yang dapat diklik untuk highlight
-- Warna berbeda berdasarkan status item
+Dimensi karton dan berat diambil dari **master barang**, bukan dari file order. Kolom (baris 1 = header):
 
-### 4. Efficiency Metrics
-- Volume yang terpacking (semua status)
-- Efisiensi = volume **Status 4** / 16 m³ (sama dengan aturan di halaman hasil)
-- Badge kesiapan kirim: **Siap Dikirim** jika rasio Status 4 ≥ 80%
-- Progress bar dengan warna berdasarkan efisiensi
+| Kolom | Isi |
+|---|---|
+| A | Cargo Destination |
+| B | Customer Code (kode dealer, mis. `SA38` = area `SA` + dealer `38`) |
+| C | Customer Name |
+| D | Part Number |
+| E | Qty (pcs) |
+| F | Status: 1 Order Received, 2 Picking, 3 Checking/Packing, 4 Cargo Ready |
+| G | Service Type (opsional: `same_day`, `one_day`, `emergency`; default `one_day`) |
 
-## Cara Penggunaan
-
-1. **Akses aplikasi**: `http://localhost:8000` (membuka Dashboard)
-2. **Mulai dari menu Cek Kapasitas**
-3. **Upload Excel**: Pilih file Excel dengan format yang sesuai
-4. **Input Manual**: Atau input item secara manual
-5. **Lihat hasil**: Visualisasi 3D akan update secara real-time
-6. **Halaman laporan**: setelah upload via form biasa (`/upload`), hasil ada di `/result/{id}`
+Qty dipecah otomatis: **Packing Unit** (box penuh) dan **Packing Receh** (sisa < qty per box).
+Baris kosong, qty <= 0, status di luar 1-4, atau part yang tidak ada di master barang dilewati dan dilaporkan.
 
 ## Menu aplikasi
 
 | Menu | Fungsi |
 |---|---|
-| Dashboard (`/`) | Ringkasan kloter hari ini dan kloter terbaru |
-| Cek Kapasitas (`/packing`) | Unggah file order, pilih kendaraan, lihat hasil dan tampilan 3D |
-| Riwayat Kloter (`/riwayat`) | Daftar semua kloter, filter, buka ulang hasil tersimpan, laporan, hapus |
-| Master Barang (`/master-barang`) | Lihat, cari, dan impor master barang |
+| Dashboard (`/`) | Jalur siap hari ini, kloter terbaru, jadwal kapal terdekat |
+| Cek Kapasitas (`/packing`) | Unggah file order; hasil per jalur dengan tampilan 3D |
+| Riwayat Kloter (`/riwayat`) | Semua kloter, filter (nama, tanggal, status, jalur), buka ulang hasil, hapus |
+| Detail kloter (`/riwayat/{id}`) | Kartu jalur, 3D per jalur, jadwal pengiriman, cetak rencana muat |
+| Rencana muat (`/riwayat/{id}/jalur/{n}/rencana-muat`) | Halaman cetak per jalur: dealer, part, karton, berat, tanda tangan |
 | Penjadwalan (`/penjadwalan`) | Jadwal kapal (manual), kloter menunggu jadwal, pengiriman harian |
-| Dealer dan MOQ (`/dealer`) | MOQ per dealer, wilayah, dan jenis jadwal |
+| Dealer dan MOQ (`/dealer`) | MOQ per dealer, penanda Same Day, wilayah |
+| Master Barang (`/master-barang`) | Lihat, cari, dan impor master barang |
 | Kendaraan dan Karton (`/referensi`) | Data acuan kendaraan dan 25 ukuran karton |
-| Area dan Jalur (`/pengaturan/area`) | Pengaturan kode area ke jalur dan wilayah |
-
-**Satu kali unggah file order = satu kloter** (tabel `uploads`), tersimpan permanen sehingga bisa dibuka ulang dan dihitung ulang
-dengan kendaraan lain tanpa unggah ulang. Status kloter: Siap dikirim (rasio >= 80%), Belum siap, atau Melebihi kapasitas (> 100%).
+| Area dan Jalur (`/pengaturan/area`) | Tujuan dan truk tiap jalur, kode area ke jalur dan wilayah |
 
 ## Pengaturan (tanpa edit file)
 
@@ -87,14 +75,14 @@ dengan kendaraan lain tanpa unggah ulang. Status kloter: Siap dikirim (rasio >= 
 | Wing Box | 950 × 245 × 250 | 58,19 m³ | 17 ton |
 | Impor (kontainer 40' HC, estimasi) | 1203 × 235 × 269 | 76,05 m³ | 26 ton |
 
-- Rasio muatan = nilai terbesar antara **rasio volume** dan **rasio berat** (mana yang tercapai lebih dulu).
-- Hanya box **Status 4 (Cargo Ready)** yang dihitung; siap kirim jika rasio >= 80%.
+- Kendaraan di atas dipilih sebagai **truk default per jalur** (bawaan: CDD, truk putih sekitar 16 m3).
 - Karton **tidak boleh diputar** (P sejajar panjang kendaraan, L lebar, T tinggi).
-- Jalur 1-7 dari kode area, jalur 8 untuk Same Day dealer terpilih. **Isi mapping di `config/logistics.php`** (`area_routes`, `same_day_dealers`).
+- Karton harus muat di truk jalurnya; yang tidak muat dilaporkan saat unggah dan ditandai `too_big`.
 
 ## Algoritma packing (`POST /packing/optimize`)
 
-Parameter: `upload_id` (wajib), `mode` = `tetris` (default) atau `ratio`, `vehicle` (kode, default kendaraan upload), `only_ready` (default `true` = hanya Status 4).
+Menyusun **satu jalur (satu truk)**. Parameter: `upload_id` (wajib), `route` (1-8, atau `none` untuk karton tanpa jalur), `mode` = `tetris` (default) atau `ratio`, `vehicle` (kode truk, menimpa truk default jalur dan tidak disimpan), `only_ready` (default `true` = hanya Status 4).
+Ringkasan semua jalur sebuah kloter: `GET /riwayat/{id}/jalur`.
 
 - **Mode `ratio`**: hanya kubikasi dan berat. Karton dimuat berurutan (Emergency, lalu Same Day, lalu One Day) sampai volume atau berat tercapai lebih dulu. Tidak ada posisi 3D.
 - **Mode `tetris`**: penyusunan 3D nyata. Karton tidak diputar, yang berat di bawah dan yang ringan di atas, dan karton hanya ditumpuk bila alasnya tertopang penuh (tanpa overhang/ruang kosong). Beberapa urutan pemuatan dicoba, lalu dipakai yang paling padat.
@@ -108,20 +96,20 @@ php artisan db:seed                 # kendaraan, 25 karton, dan master barang CO
 php artisan products:import sample_products.csv   # import/update master barang (ganti dengan data asli)
 ```
 
-File contoh:
-- `sample_data_lengkap.csv`: order lengkap untuk demo (31 baris, 9 dealer, status 1 sampai 4, semua 8 jalur, ready sekitar 84% pada CDD). Dipakai oleh tes agar tetap valid.
-- `sample_data.csv`: order kecil (7 baris).
-- `sample_products.csv`: master barang (6 barang). Kode area sample (SA sampai SG) dan dealer same day `SH09` adalah CONTOH di `config/logistics.php`.
+File contoh (semua dipakai oleh tes agar tetap valid):
+- `sample_data_lengkap.csv`: order lengkap untuk demo (30 baris, 11 dealer, status 1 sampai 4). Memperlihatkan semua kondisi jalur:
+  Jalur 1, 2, dan 5 **siap** (Jalur 2 dibatasi **berat**), Jalur 3 dan 8 **belum siap**, Jalur 4 **melebihi** truk.
+- `sample_data_kapal.csv`: dealer luar pulau dan Aceh (Jalur 6, jadwal kapal) untuk mencoba penjadwalan dan MOQ.
+- `sample_products.csv`: master barang (6 barang), sama dengan data contoh `ProductSeeder`.
 
-Jalur disimpan saat file diunggah. Kloter lama yang diunggah sebelum mapping diisi tetap abu-abu; unggah ulang untuk mendapat warna jalur.
+Kode area sample (SA sampai SL), nama tujuan jalur, dan dealer Same Day `SH09` adalah **CONTOH**; ganti lewat menu Pengaturan.
 
-Format master barang (
-Part Number, Name, Weight kg/pcs, No Karton, Qty per Box, Category small|heavy, Location).
+Format master barang: Part Number, Name, Weight kg/pcs, No Karton, Qty per Box, Category (small atau heavy), Location.
 
 ## Teknologi
 
 - **Backend**: Laravel 12 (PHP 8.2+)
-- **Frontend**: Bootstrap 5, jQuery, Plotly.js
+- **Frontend**: Bootstrap 5, JavaScript biasa, Plotly.js
 - **Excel Processing**: Laravel Excel
 - **Database**: MySQL/PostgreSQL
 
@@ -136,5 +124,6 @@ Part Number, Name, Weight kg/pcs, No Karton, Qty per Box, Category small|heavy, 
 
 ## Catatan
 
-- Baris Excel/CSV yang kosong, berdimensi <= 0, atau berstatus selain 2/3/4 dilewati dan dilaporkan.
-- Logika frontend halaman packing ada di `public/js/packing.js`.
+- Jalur pada karton (`boxes.route`) adalah data turunan dari kode dealer dan pengaturan; dihitung ulang otomatis saat pengaturan berubah.
+- Kolom `uploads.status`, `ratio`, `volume_ratio`, `weight_ratio`, `binding_constraint`, dan `vehicle_id` adalah peninggalan model lama dan tidak dipakai.
+- Logika frontend ada di `public/js/packing.js`.

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Area;
 use App\Models\Dealer;
+use App\Models\RouteSetting;
+use App\Models\Vehicle;
 use App\Services\RouteApplier;
 use App\Services\RouteResolver;
 use Illuminate\Http\Request;
@@ -32,11 +34,41 @@ class AreaController extends Controller
             ->values();
 
         return view('areas.index', [
+            'routeSettings' => RouteSetting::ensureAll(),
+            'vehicles' => Vehicle::orderBy('id')->get(),
             'areas' => $areas,
             'unknown' => $unknown,
             'regions' => config('logistics.regions'),
             'regionSchedule' => config('logistics.region_schedule'),
         ]);
+    }
+
+    /** Nama tujuan dan truk default tiap jalur (satu jalur = satu truk ke satu tujuan). */
+    public function updateRoutes(Request $request)
+    {
+        $data = $request->validate([
+            'routes' => 'required|array',
+            'routes.*.name' => 'nullable|string|max:60',
+            'routes.*.vehicle_id' => 'nullable|integer|exists:vehicles,id',
+        ]);
+
+        $changed = 0;
+        foreach ($data['routes'] as $number => $values) {
+            if (! in_array((int) $number, range(1, 8), true)) {
+                continue;
+            }
+            $setting = RouteSetting::firstOrCreate(['route' => (int) $number]);
+            $setting->fill([
+                'name' => ($values['name'] ?? '') !== '' ? $values['name'] : null,
+                'vehicle_id' => ($values['vehicle_id'] ?? '') !== '' ? (int) $values['vehicle_id'] : null,
+            ]);
+            if ($setting->isDirty()) {
+                $setting->save();
+                $changed++;
+            }
+        }
+
+        return back()->with('status', $changed > 0 ? "Pengaturan {$changed} jalur disimpan." : 'Tidak ada perubahan.');
     }
 
     public function store(Request $request, RouteApplier $applier)

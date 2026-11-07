@@ -19,18 +19,20 @@
             <label class="field-label" for="status">Status</label>
             <select class="form-select" id="status" name="status">
                 <option value="">Semua</option>
-                <option value="ready" @selected($filters['status'] === 'ready')>Siap dikirim</option>
-                <option value="wait" @selected($filters['status'] === 'wait')>Belum siap</option>
-                <option value="over" @selected($filters['status'] === 'over')>Melebihi kapasitas</option>
+                <option value="ready" @selected($filters['status'] === 'ready')>Semua jalur siap</option>
+                <option value="partial" @selected($filters['status'] === 'partial')>Sebagian jalur siap</option>
+                <option value="wait" @selected($filters['status'] === 'wait')>Belum ada jalur siap</option>
+                <option value="over" @selected($filters['status'] === 'over')>Ada jalur melebihi</option>
             </select>
         </div>
         <div>
-            <label class="field-label" for="vehicle">Kendaraan</label>
-            <select class="form-select" id="vehicle" name="vehicle">
+            <label class="field-label" for="route">Jalur</label>
+            <select class="form-select" id="route" name="route">
                 <option value="">Semua</option>
-                @foreach ($vehicles as $v)
-                    <option value="{{ $v->id }}" @selected((string) $filters['vehicle'] === (string) $v->id)>{{ $v->name }}</option>
+                @foreach (range(1, 8) as $n)
+                    <option value="{{ $n }}" @selected((string) $filters['route'] === (string) $n)>Jalur {{ $n }}</option>
                 @endforeach
+                <option value="none" @selected($filters['route'] === 'none')>Tanpa jalur</option>
             </select>
         </div>
         <div>
@@ -57,7 +59,7 @@
             @endif
         </div>
     @else
-        @include('batches._table', ['batches' => $batches])
+        @include('batches._table', ['batches' => $batches, 'summaries' => $summaries])
         @if ($batches->hasPages())
             <div class="d-flex justify-content-between align-items-center p-3 border-top flex-wrap gap-2">
                 <small class="text-muted">Menampilkan {{ $batches->firstItem() }} sampai {{ $batches->lastItem() }} dari {{ $batches->total() }} kloter</small>

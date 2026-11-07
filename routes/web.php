@@ -17,13 +17,16 @@ Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/packing', [PackingController::class, 'index'])->name('packing.index');
 Route::post('/packing/optimize', [PackingController::class, 'optimize'])->name('packing.optimize');
 Route::post('/upload', [UploadController::class, 'upload'])->name('upload');
-Route::get('/result/{id}', [UploadController::class, 'result'])->name('result');
+// Alamat lama laporan kloter: sekarang digabung ke halaman detail kloter
+Route::get('/result/{upload}', fn (\App\Models\Upload $upload) => redirect()->route('batches.show', $upload))->name('result');
 
 // Riwayat kloter (satu unggahan = satu kloter)
 Route::get('/riwayat', [BatchController::class, 'index'])->name('batches.index');
 Route::get('/riwayat/{upload}', [BatchController::class, 'show'])->name('batches.show');
 Route::delete('/riwayat/{upload}', [BatchController::class, 'destroy'])->name('batches.destroy');
 Route::post('/riwayat/{upload}/jadwal', [BatchController::class, 'schedule'])->name('batches.schedule');
+Route::get('/riwayat/{upload}/jalur', [BatchController::class, 'routes'])->name('batches.routes');
+Route::get('/riwayat/{upload}/jalur/{route}/rencana-muat', [BatchController::class, 'loadPlan'])->name('batches.load-plan');
 
 // Penjadwalan: jadwal kapal (manual) dan pengiriman harian
 Route::get('/penjadwalan', [ScheduleController::class, 'index'])->name('schedule.index');
@@ -43,6 +46,7 @@ Route::post('/dealer', [DealerController::class, 'store'])->name('dealers.store'
 
 // Pengaturan: kode area -> jalur dan wilayah
 Route::get('/pengaturan/area', [AreaController::class, 'index'])->name('areas.index');
+Route::put('/pengaturan/jalur', [AreaController::class, 'updateRoutes'])->name('areas.routes');
 Route::post('/pengaturan/area', [AreaController::class, 'store'])->name('areas.store');
 Route::put('/pengaturan/area', [AreaController::class, 'update'])->name('areas.update');
 Route::post('/pengaturan/area/deteksi', [AreaController::class, 'detect'])->name('areas.detect');

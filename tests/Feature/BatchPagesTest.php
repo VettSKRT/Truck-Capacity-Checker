@@ -25,18 +25,18 @@ class BatchPagesTest extends TestCase
         $this->seed([VehicleSeeder::class, CartonSeeder::class, ProductSeeder::class]);
     }
 
-    private function upload(string $name, string $body, string $vehicle = 'CDD'): int
+    private function upload(string $name, string $body): int
     {
         $header = "Cargo Destination,Customer Code,Customer Name,Part Number,Qty,Status,Service Type\n";
         $file = UploadedFile::fake()->createWithContent($name, $header . $body);
 
-        return $this->postJson('/upload', ['excel_file' => $file, 'vehicle' => $vehicle])->assertOk()->json('upload_id');
+        return $this->postJson('/upload', ['excel_file' => $file])->assertOk()->json('upload_id');
     }
 
     public function test_every_upload_becomes_one_batch_listed_in_history_and_dashboard(): void
     {
         $a = $this->upload('pagi.csv', "Jakarta,SA38,Dealer A,SMP-0001,45,4,one_day\n");
-        $b = $this->upload('siang.csv', "Bandung,SB12,Dealer B,SMP-0002,10,4,one_day\n");
+        $b = $this->upload('siang.csv', "Bandung,SB21,Dealer B,SMP-0002,10,4,one_day\n");
 
         $this->assertNotSame($a, $b);
         $this->assertSame(2, Upload::count());
@@ -45,42 +45,51 @@ class BatchPagesTest extends TestCase
         $this->get('/riwayat')->assertOk()->assertSee('pagi.csv')->assertSee('siang.csv');
     }
 
-    public function test_history_can_be_filtered_by_name_number_and_status(): void
+    public function test_history_can_be_filtered_by_name_number_route_and_status(): void
     {
-        $a = $this->upload('pagi.csv', "Jakarta,SA38,Dealer A,SMP-0001,45,4,one_day\n");
-        $b = $this->upload('siang.csv', "Bandung,SB12,Dealer B,SMP-0002,10,4,one_day\n");
+        $a = $this->upload('pagi.csv', "Jakarta,SA38,Dealer A,SMP-0001,45,4,one_day\n");           // Jalur 1
+        $b = $this->upload('siang.csv', "Bandung,SB21,Dealer B,SMP-0002,10,4,one_day\n");          // Jalur 3
 
         $this->get('/riwayat?q=pagi')->assertOk()->assertSee('pagi.csv')->assertDontSee('siang.csv');
         $this->get('/riwayat?q=K-' . str_pad((string) $b, 4, '0', STR_PAD_LEFT))->assertOk()->assertSee('siang.csv')->assertDontSee('pagi.csv');
-        // Muatan kecil: keduanya "Belum siap"
+
+        $this->get('/riwayat?route=1')->assertOk()->assertSee('pagi.csv')->assertDontSee('siang.csv');
+        $this->get('/riwayat?route=3')->assertOk()->assertSee('siang.csv')->assertDontSee('pagi.csv');
+
+        // Muatan kecil: tidak ada jalur yang siap
         $this->get('/riwayat?status=ready')->assertOk()->assertDontSee('pagi.csv')->assertSee('Tidak ada kloter yang cocok');
         $this->get('/riwayat?status=wait')->assertOk()->assertSee('pagi.csv')->assertSee('siang.csv');
     }
 
-    public function test_over_capacity_batch_is_stored_and_filtered_as_over_not_ready(): void
+    public function test_over_capacity_route_is_flagged_on_the_batch_and_filterable(): void
     {
-        // 6300 pcs Kampas Rem (630 karton, ~13 m³ / 5 ton) jauh melebihi CDE (9,25 m³ / 3 ton)
-        $over = $this->upload('besar.csv', "Jakarta,SA38,Dealer A,SMP-0002,6300,4,emergency\n", 'CDE');
-        $small = $this->upload('kecil.csv', "Jakarta,SA38,Dealer A,SMP-0001,45,4,one_day\n", 'CDD');
+        // 8500 pcs Kampas Rem = 850 karton, sekitar 18 m³: melebihi satu truk CDD (16,72 m³)
+        $over = $this->upload('besar.csv', "Jakarta,SA38,Dealer A,SMP-0002,8500,4,emergency\n");
+        $this->upload('kecil.csv', "Bandung,SB21,Dealer B,SMP-0001,45,4,one_day\n");
 
-        $this->assertSame('Melebihi Kapasitas', Upload::find($over)->status);
-        $this->assertTrue(Upload::find($over)->isOver());
-        $this->assertFalse(Upload::find($over)->isReady());
-
-        $this->get('/riwayat?status=over')->assertOk()->assertSee('besar.csv')->assertDontSee('kecil.csv');
-        $this->get('/riwayat?status=ready')->assertOk()->assertDontSee('besar.csv');
+        $this->get('/riwayat?status=over')->assertOk()->assertSee('besar.csv')->assertDontSee('kecil.csv')->assertSee('jalur melebihi');
         $this->get('/riwayat?status=wait')->assertOk()->assertSee('kecil.csv')->assertDontSee('besar.csv');
+
+        $json = $this->getJson("/riwayat/{$over}/jalur")->assertOk()->json();
+        $this->assertSame('over', $json['overall']['state']);
+        $this->assertSame('over', $json['routes'][0]['state']);
     }
 
-    public function test_batch_detail_page_loads_stored_batch_and_optimize_still_works_on_it(): void
+    public function test_batch_detail_page_loads_stored_batch_and_optimize_works_on_it(): void
     {
         $id = $this->upload('pagi.csv', "Jakarta,SA38,Dealer A,SMP-0001,45,4,one_day\n");
 
         $this->get('/riwayat/' . $id)->assertOk()->assertSee('data-upload-id="' . $id . '"', false)->assertSee('pagi.csv');
-        $this->postJson('/packing/optimize', ['upload_id' => $id, 'mode' => 'tetris', 'vehicle' => 'CDE'])
+        $this->postJson('/packing/optimize', ['upload_id' => $id, 'route' => '1', 'mode' => 'tetris', 'vehicle' => 'CDE'])
             ->assertOk()->assertJsonPath('vehicle.code', 'CDE');
-        $this->get('/result/' . $id)->assertOk()->assertSee('Laporan Kloter');
         $this->get('/riwayat/99999')->assertNotFound();
+    }
+
+    public function test_old_report_address_redirects_to_batch_detail(): void
+    {
+        $id = $this->upload('pagi.csv', "Jakarta,SA38,Dealer A,SMP-0001,45,4,one_day\n");
+
+        $this->get('/result/' . $id)->assertRedirect(route('batches.show', $id));
     }
 
     public function test_deleting_a_batch_removes_its_boxes_and_file(): void

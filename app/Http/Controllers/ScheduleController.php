@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Shipment;
 use App\Models\Upload;
 use App\Models\Vehicle;
+use App\Services\RouteLoadService;
 use App\Services\ScheduleService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -14,7 +15,7 @@ use Illuminate\Validation\Rule;
  */
 class ScheduleController extends Controller
 {
-    public function __construct(private ScheduleService $schedule)
+    public function __construct(private ScheduleService $schedule, private RouteLoadService $loads)
     {
     }
 
@@ -40,10 +41,13 @@ class ScheduleController extends Controller
     {
         $shipment->load('vehicle');
 
+        $uploads = $shipment->uploads()->withSummary()->latest('id')->get();
+
         return view('schedule.show', [
             'shipment' => $shipment,
             'analysis' => $this->schedule->analyzeShipment($shipment),
-            'uploads' => $shipment->uploads()->with('vehicle')->withSummary()->latest('id')->get(),
+            'uploads' => $uploads,
+            'summaries' => $this->loads->summarizeMany($uploads->pluck('id')),
             'available' => $this->classifyUnscheduled()[0],
         ]);
     }
@@ -118,7 +122,8 @@ class ScheduleController extends Controller
      */
     private function classifyUnscheduled(): array
     {
-        $uploads = Upload::whereNull('shipment_id')->with('vehicle')->withSummary()->latest('id')->limit(60)->get();
+        $uploads = Upload::whereNull('shipment_id')->withSummary()->latest('id')->limit(60)->get();
+        $summaries = $this->loads->summarizeMany($uploads->pluck('id'));
 
         $waiting = collect();   // perlu jadwal kapal
         $daily = collect();     // pengiriman harian
@@ -126,7 +131,7 @@ class ScheduleController extends Controller
 
         foreach ($uploads as $u) {
             $a = $this->schedule->analyzeUpload($u);
-            $row = ['upload' => $u, 'analysis' => $a];
+            $row = ['upload' => $u, 'analysis' => $a, 'overall' => $summaries[$u->id]['overall']];
 
             match ($a['mode']) {
                 'kapal', 'campuran' => $waiting->push($row),

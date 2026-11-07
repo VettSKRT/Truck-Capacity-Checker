@@ -8,13 +8,14 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Satu Upload = satu kloter (satu kali unggah file order).
+ *
+ * Kesiapan kirim TIDAK disimpan di sini: satu kloter berisi beberapa jalur dan tiap jalur adalah satu truk,
+ * jadi statusnya dihitung per jalur oleh RouteLoadService. Kolom ratio, volume_ratio, weight_ratio,
+ * binding_constraint, status, dan vehicle_id adalah peninggalan model lama (satu kendaraan per kloter)
+ * dan tidak dipakai lagi.
  */
 class Upload extends Model
 {
-    public const STATUS_READY = 'Siap Dikirim';
-    public const STATUS_WAIT = 'Belum Siap';
-    public const STATUS_OVER = 'Melebihi Kapasitas';
-
     protected $fillable = [
         'filename', 'filepath', 'vehicle_id', 'shipment_id',
         'total_volume', 'total_weight',
@@ -45,33 +46,6 @@ class Upload extends Model
             ->withCount(['boxes as dealer_total' => function ($q) {
                 $q->select(DB::raw('count(distinct customer_code)'));
             }]);
-    }
-
-    /** Siap dikirim: cukup penuh (>= batas) dan tidak melebihi kendaraan. */
-    public function isReady(): bool
-    {
-        return $this->status === self::STATUS_READY && ! $this->isOver();
-    }
-
-    public function isOver(): bool
-    {
-        return $this->ratio > 1;
-    }
-
-    // Berdasarkan rasio, agar data lama (yang statusnya belum membedakan "melebihi") tetap benar
-    public function scopeReady(Builder $query): Builder
-    {
-        return $query->where('status', self::STATUS_READY)->where('ratio', '<=', 1);
-    }
-
-    public function scopeOver(Builder $query): Builder
-    {
-        return $query->where('ratio', '>', 1);
-    }
-
-    public function scopeWait(Builder $query): Builder
-    {
-        return $query->where('status', '!=', self::STATUS_READY)->where('ratio', '<=', 1);
     }
 
     /** Nomor kloter untuk tampilan, mis. "K-0012". */

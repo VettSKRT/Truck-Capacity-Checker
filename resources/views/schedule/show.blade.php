@@ -129,7 +129,7 @@
                             <td class="nowrap"><a href="{{ route('batches.show', $u) }}"><strong>{{ $u->code }}</strong></a></td>
                             <td>{{ \Illuminate\Support\Str::limit($u->filename, 34) }}</td>
                             <td class="num">{{ $fmt($u->carton_total ?? 0, 0) }}</td>
-                            <td>@include('partials.status-badge', ['upload' => $u])</td>
+                            <td>@include('partials.batch-status', ['overall' => $summaries[$u->id]['overall']])</td>
                             <td class="actions">
                                 <form method="POST" action="{{ route('schedule.detach', [$shipment, $u]) }}" class="d-inline">
                                     @csrf @method('DELETE')
