@@ -18,7 +18,7 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'file'),
+    'driver' => 'file', // tetap file: aplikasi ini tidak memakai tabel sessions (tidak dapat ditimpa variabel lingkungan)
 
     /*
     |--------------------------------------------------------------------------

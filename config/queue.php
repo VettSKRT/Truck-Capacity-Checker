@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'sync'),
+    'default' => 'sync', // tetap sync: aplikasi ini tidak memakai antrean (tabel jobs)
 
     /*
     |--------------------------------------------------------------------------

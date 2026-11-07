@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'file'),
+    'default' => 'file', // tetap file: aplikasi ini tidak memakai tabel cache
 
     /*
     |--------------------------------------------------------------------------
