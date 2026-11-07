@@ -583,9 +583,24 @@
         renderItemPanel();
         if (state.hlIndex === null || !state.plotDrawn) return;   // grafik belum digambar
 
-        // Hanya mesh sorotan yang diubah; susunan karton tidak digambar ulang
+        // Hanya mesh sorotan yang diubah; susunan karton tidak digambar ulang.
+        // Kamera yang sedang dipakai ikut dikirim dalam pembaruan yang sama agar tampilan TIDAK loncat kembali
+        // ke sudut awal setelah pengguna memutar lalu mengklik karton.
         const g = highlightGeometry(item);
-        Plotly.restyle('plot', item ? { x: [g.x], y: [g.y], z: [g.z], visible: [true] } : { visible: [false] }, [state.hlIndex]);
+        const cam = currentCamera();
+        state.cam = cam;
+        Plotly.update('plot', item ? { x: [g.x], y: [g.y], z: [g.z], visible: [true] } : { visible: [false] },
+            { 'scene.camera': cam }, [state.hlIndex]);
+    }
+
+    // Kamera yang sedang dipakai grafik (termasuk hasil memutar). Bila API internal Plotly tidak tersedia,
+    // dipakai kamera terakhir yang dilaporkan lewat peristiwa plotly_relayout.
+    function currentCamera() {
+        try {
+            const cam = $('#plot')._fullLayout.scene._scene.getCamera();
+            if (cam && cam.eye) return clone(cam);
+        } catch (e) { /* API internal tidak tersedia */ }
+        return clone(state.cam);
     }
 
     function itemFromPoint(p) {
@@ -646,6 +661,7 @@
     function plotLayout() {
         return {
             margin: { l: 0, r: 0, t: 0, b: 0 },
+            uirevision: 'kamera',   // pertahankan kamera hasil putaran pengguna saat grafik diperbarui
             paper_bgcolor: '#ffffff',
             showlegend: false,
             scene: {
