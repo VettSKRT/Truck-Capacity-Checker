@@ -56,11 +56,11 @@
 <section class="panel panel--flush">
     @if ($products->isEmpty())
         <div class="empty-state">
-            <i class="bi bi-inbox" style="color: var(--blue-600)" aria-hidden="true"></i>
+            <i class="bi bi-inbox" aria-hidden="true"></i>
             {{ $total === 0 ? 'Master barang masih kosong. Impor file master barang di atas.' : 'Tidak ada barang yang cocok dengan pencarian.' }}
         </div>
     @else
-        <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+        <div class="table-wrap table-wrap--free table-wrap--flush">
             <table class="table-clean">
                 <thead>
                     <tr>

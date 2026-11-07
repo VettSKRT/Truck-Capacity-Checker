@@ -39,7 +39,7 @@
         </div>
 
         @if ($d['ready']->isNotEmpty())
-            <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+            <div class="table-wrap table-wrap--free table-wrap--flush">
                 <table class="table-clean">
                     <thead>
                         <tr>

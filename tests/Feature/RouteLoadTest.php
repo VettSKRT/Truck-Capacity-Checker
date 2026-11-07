@@ -201,8 +201,11 @@ class RouteLoadTest extends TestCase
 
         $html = $this->get('/')->assertOk()->getContent();
 
-        $this->assertMatchesRegularExpression('/dash-stat__value">3<\/div>\s*<div class="dash-stat__label">Jalur siap dikirim hari ini/', $html);
-        $this->assertMatchesRegularExpression('/dash-stat__value">3<\/div>\s*<div class="dash-stat__label">Jalur belum siap atau melebihi/', $html);
+        $this->assertStringContainsString('Jalur siap dikirim hari ini', $html);
+        $this->assertStringContainsString('Jalur belum siap atau melebihi', $html);
+        $this->assertMatchesRegularExpression('/data-kpi="routes_ready">3<\/div>/', $html);
+        $this->assertMatchesRegularExpression('/data-kpi="routes_attention">3<\/div>/', $html);
+        $this->assertStringContainsString('melebihi truk', $html);   // jalur yang melebihi muncul di panel peringatan
     }
 
     public function test_batch_detail_page_has_route_cards_container_and_no_global_vehicle_picker(): void

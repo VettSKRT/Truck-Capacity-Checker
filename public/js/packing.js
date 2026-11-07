@@ -14,7 +14,9 @@
 
     const READY_RATIO = 0.8;
     // Satu tampilan 3D = satu truk, jadi karton diwarnai per dealer
-    const DEALER_COLORS = ['#0057B8', '#E4002B', '#2E9E5B', '#F2A900', '#7A3FB0', '#00A3AD', '#8C5A2B', '#C2255C', '#5B6B8C', '#E8590C'];
+    // Warna terang yang jelas di latar gelap. Tidak ada merah: merah dipakai untuk karton terpilih, cian untuk rangka truk.
+    const DEALER_COLORS = ['#0A84FF', '#FF9F0A', '#30D158', '#BF5AF2', '#FFD60A', '#64D2FF', '#AC8E68', '#5E5CE6', '#66D4CF', '#D1D1D6'];
+    const THEME = { frame: '#00E5FF', selected: '#FF453A', edge: 'rgba(0,0,0,0.6)', paper: '#171717', wall: '#1B1B1B', grid: '#2C2C2E', text: '#98989D' };
     const REASONS = {
         weight: 'Melebihi batas berat truk',
         volume: 'Melebihi batas volume truk',
@@ -495,7 +497,7 @@
         // Rangka truk
         const cx = [], cy = [], cz = [];
         boxEdges(0, 0, 0, v.length, v.width, v.height, cx, cy, cz);
-        traces.push({ type: 'scatter3d', mode: 'lines', x: cx, y: cy, z: cz, line: { color: '#00439B', width: 5 }, hoverinfo: 'skip', showlegend: false });
+        traces.push({ type: 'scatter3d', mode: 'lines', x: cx, y: cy, z: cz, line: { color: THEME.frame, width: 5 }, hoverinfo: 'skip', showlegend: false });
 
         // Satu mesh per dealer. Setiap titik sudut membawa teks hover; 8 titik sudut = 1 karton.
         const meshMap = {};
@@ -531,14 +533,14 @@
         if (data.items.length <= MAX_EDGE_BOXES) {
             const ex = [], ey = [], ez = [];
             data.items.forEach((it) => boxEdges(it.x, it.y, it.z, it.x + it.length, it.y + it.width, it.z + it.height, ex, ey, ez));
-            traces.push({ type: 'scatter3d', mode: 'lines', x: ex, y: ey, z: ez, line: { color: 'rgba(22,32,51,0.55)', width: 1 }, hoverinfo: 'skip', showlegend: false });
+            traces.push({ type: 'scatter3d', mode: 'lines', x: ex, y: ey, z: ez, line: { color: THEME.edge, width: 1 }, hoverinfo: 'skip', showlegend: false });
         }
 
         // Satu mesh kecil untuk menyorot karton terpilih. Selalu ada (disembunyikan) supaya memilih karton
         // cukup mengubah mesh kecil ini dan seluruh susunan tidak perlu digambar ulang.
         state.hlIndex = traces.length;
         traces.push(Object.assign({
-            type: 'mesh3d', i: CUBE_I, j: CUBE_J, k: CUBE_K, color: '#D4001A', opacity: 1, flatshading: true,
+            type: 'mesh3d', i: CUBE_I, j: CUBE_J, k: CUBE_K, color: THEME.selected, opacity: 1, flatshading: true,
             hoverinfo: 'skip', showlegend: false, name: 'Karton terpilih', visible: !!state.selected,
         }, highlightGeometry(state.selected)));
         return traces;
@@ -662,14 +664,15 @@
         return {
             margin: { l: 0, r: 0, t: 0, b: 0 },
             uirevision: 'kamera',   // pertahankan kamera hasil putaran pengguna saat grafik diperbarui
-            paper_bgcolor: '#ffffff',
+            paper_bgcolor: THEME.paper,
+            font: { family: 'Inter, sans-serif', color: THEME.text, size: 12 },
             showlegend: false,
             scene: {
                 aspectmode: 'data',
                 camera: state.cam,
-                xaxis: { title: { text: 'Panjang (m)' }, backgroundcolor: '#f6f8fc', gridcolor: '#d3dae6' },
-                yaxis: { title: { text: 'Lebar (m)' }, backgroundcolor: '#f6f8fc', gridcolor: '#d3dae6' },
-                zaxis: { title: { text: 'Tinggi (m)' }, backgroundcolor: '#f6f8fc', gridcolor: '#d3dae6' },
+                xaxis: { title: { text: 'Panjang (m)' }, backgroundcolor: THEME.wall, gridcolor: THEME.grid, zerolinecolor: THEME.grid, linecolor: THEME.grid, showbackground: true },
+                yaxis: { title: { text: 'Lebar (m)' }, backgroundcolor: THEME.wall, gridcolor: THEME.grid, zerolinecolor: THEME.grid, linecolor: THEME.grid, showbackground: true },
+                zaxis: { title: { text: 'Tinggi (m)' }, backgroundcolor: THEME.wall, gridcolor: THEME.grid, zerolinecolor: THEME.grid, linecolor: THEME.grid, showbackground: true },
             },
         };
     }

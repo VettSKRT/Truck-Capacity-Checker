@@ -51,7 +51,7 @@
 <section class="panel panel--flush">
     @if ($batches->isEmpty())
         <div class="empty-state">
-            <i class="bi bi-inbox" style="color: var(--blue-600)" aria-hidden="true"></i>
+            <i class="bi bi-inbox" aria-hidden="true"></i>
             @if (array_filter($filters))
                 Tidak ada kloter yang cocok dengan pencarian ini.
             @else

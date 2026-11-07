@@ -2,6 +2,19 @@
 
 Aplikasi Laravel untuk mengecek kesiapan muatan truk di gudang, dengan tampilan 3D susunan karton.
 
+## Tampilan
+
+Antarmuka memakai **tema gelap gaya dashboard** sesuai panduan desain di `dashboard-design.md`
+(panduan aslinya untuk aplikasi lain; yang diterapkan di sini adalah sistem visualnya):
+
+- Latar `#121212`, kartu `#1E1E1E` (radius 16px, padding 20px, garis `#2C2C2E`), spasi kelipatan 8px, grid 12 kolom.
+- **Cian `#00E5FF`** untuk data utama, KPI, dan tombol aksi. **Hijau `#32D74B`** = siap kirim / normal,
+  **kuning `#FFD60A`** = belum siap, **merah `#FF453A`** = melebihi kapasitas dan peringatan.
+- Huruf **Inter** untuk teks dan **JetBrains Mono** untuk angka (KPI, tabel, persentase).
+- Dashboard: 3 KPI di atas, grafik area muatan 14 hari (8 kolom), panel peringatan (4 kolom).
+- Halaman **Rencana muat** tetap dicetak hitam di atas putih (aturan `@media print`).
+- Semua gaya ada di `public/css/packing.css` (token warna di `:root`); warna tampilan 3D ada di `THEME` pada `public/js/packing.js`.
+
 ## Konsep utama
 
 - **Satu jalur = satu truk khusus ke satu tujuan.** Contoh: Jalur 1 ke Jabodetabek, Jalur 2 ke Jawa Tengah.
@@ -35,7 +48,7 @@ Baris kosong, qty <= 0, status di luar 1-4, atau part yang tidak ada di master b
 
 | Menu | Fungsi |
 |---|---|
-| Dashboard (`/`) | Jalur siap hari ini, kloter terbaru, jadwal kapal terdekat |
+| Dashboard (`/`) | KPI hari ini (kloter, jalur siap, jalur perlu perhatian), grafik volume Cargo Ready 14 hari, panel peringatan (jalur melebihi truk, karton tanpa jalur, kloter menunggu jadwal kapal), jadwal kapal terdekat, kloter terbaru |
 | Cek Kapasitas (`/packing`) | Unggah file order; hasil per jalur dengan tampilan 3D |
 | Riwayat Kloter (`/riwayat`) | Semua kloter, filter (nama, tanggal, status, jalur), buka ulang hasil, hapus |
 | Detail kloter (`/riwayat/{id}`) | Kartu jalur, 3D per jalur, jadwal pengiriman, cetak rencana muat |
@@ -122,18 +135,35 @@ Format master barang: Part Number, Name, Weight kg/pcs, No Karton, Qty per Box, 
 ## Teknologi
 
 - **Backend**: Laravel 12 (PHP 8.2+)
-- **Frontend**: Bootstrap 5, JavaScript biasa, Plotly.js
+- **Frontend**: Bootstrap 5 (mode gelap), JavaScript biasa, Plotly.js (3D di halaman kloter, bundel `plotly-basic` untuk grafik dashboard), font Inter dan JetBrains Mono (Google Fonts)
 - **Excel Processing**: Laravel Excel
 - **Database**: MySQL/PostgreSQL
 
-## Installation
+## Instalasi
 
 1. Clone repository
-2. Install dependencies: `composer install`
-3. Copy .env.example to .env
-4. Configure database
-5. Run migrations: `php artisan migrate`
-6. Start server: `php artisan serve`
+2. `composer install`
+3. Salin `.env.example` menjadi `.env`, lalu `php artisan key:generate`
+4. Atur koneksi database di `.env` (`DB_CONNECTION`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`)
+5. `php artisan migrate` lalu `php artisan db:seed` (data contoh)
+6. `php artisan serve`, buka `http://127.0.0.1:8000`
+
+> **Jangan commit `.env`** (berisi `APP_KEY` dan kata sandi database). File ini sudah ada di `.gitignore`;
+> yang di-commit hanya `.env.example` tanpa rahasia.
+
+## Menjalankan tes
+
+Tes **selalu** memakai SQLite in-memory: `phpunit.xml` memaksa (`force="true"`) `APP_ENV=testing`,
+`DB_CONNECTION=sqlite`, dan `DB_DATABASE=:memory:`, sehingga variabel lingkungan lama di terminal/IDE
+(misalnya `DB_CONNECTION=mysql`) tidak bisa membuat `RefreshDatabase` mengosongkan database asli.
+
+Butuh ekstensi PHP `pdo_sqlite`. Bila belum aktif di `php.ini`, aktifkan sementara per perintah:
+
+```
+php -d extension=pdo_sqlite -d extension=sqlite3 vendor/bin/phpunit
+```
+
+Bila ekstensi tidak ada, tes gagal dengan pesan `could not find driver`; database MySQL tidak tersentuh.
 
 ## Catatan
 

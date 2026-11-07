@@ -54,13 +54,13 @@
 <section class="panel panel--flush">
     @if ($dealers->isEmpty())
         <div class="empty-state">
-            <i class="bi bi-inbox" style="color: var(--blue-600)" aria-hidden="true"></i>
+            <i class="bi bi-inbox" aria-hidden="true"></i>
             {{ $total === 0 ? 'Belum ada dealer. Dealer muncul otomatis setelah file order diunggah.' : 'Tidak ada dealer yang cocok.' }}
         </div>
     @else
         <form method="POST" action="{{ route('dealers.moq') }}">
             @csrf
-            <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+            <div class="table-wrap table-wrap--free table-wrap--flush">
                 <table class="table-clean">
                     <thead>
                         <tr><th>Kode</th><th>Nama</th><th>Wilayah</th><th>Jadwal</th><th>Same Day</th><th class="num">MOQ (m³)</th></tr>

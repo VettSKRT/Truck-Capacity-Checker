@@ -20,11 +20,11 @@
     <div class="panel__head p-3 pb-0 mb-2"><h2 class="panel__title">Jadwal kapal mendatang</h2></div>
     @if ($upcoming->isEmpty())
         <div class="empty-state">
-            <i class="bi bi-calendar-plus" style="color: var(--blue-600)" aria-hidden="true"></i>
+            <i class="bi bi-calendar-plus" aria-hidden="true"></i>
             Belum ada jadwal kapal. <a href="{{ route('schedule.create') }}">Tambah jadwal kapal</a> untuk dealer luar pulau dan Aceh.
         </div>
     @else
-        <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+        <div class="table-wrap table-wrap--free table-wrap--flush">
             <table class="table-clean">
                 <thead>
                     <tr>
@@ -81,7 +81,7 @@
     @if ($waiting->isEmpty())
         <div class="empty-state"><i class="bi bi-check-circle" aria-hidden="true"></i> Tidak ada kloter yang menunggu jadwal kapal.</div>
     @else
-        <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+        <div class="table-wrap table-wrap--free table-wrap--flush">
             <table class="table-clean">
                 <thead><tr><th>Kloter</th><th>File</th><th>Dealer kapal</th><th class="num">Volume (m³)</th><th>Tautkan ke jadwal</th></tr></thead>
                 <tbody>
@@ -122,9 +122,9 @@
 <section class="panel panel--flush">
     <div class="panel__head p-3 pb-0 mb-2"><h2 class="panel__title">Pengiriman harian ({{ $daily->count() }})</h2></div>
     @if ($daily->isEmpty())
-        <div class="empty-state"><i class="bi bi-inbox" style="color: var(--blue-600)" aria-hidden="true"></i> Tidak ada kloter harian yang tercatat.</div>
+        <div class="empty-state"><i class="bi bi-inbox" aria-hidden="true"></i> Tidak ada kloter harian yang tercatat.</div>
     @else
-        <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+        <div class="table-wrap table-wrap--free table-wrap--flush">
             <table class="table-clean">
                 <thead><tr><th>Kloter</th><th>File</th><th>Rencana kirim</th><th class="num">Dealer</th><th>Status</th><th></th></tr></thead>
                 <tbody>
@@ -160,7 +160,7 @@
 @if ($others->isNotEmpty())
     <section class="panel panel--flush">
         <div class="panel__head p-3 pb-0 mb-2"><h2 class="panel__title">Jadwal lainnya</h2></div>
-        <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+        <div class="table-wrap table-wrap--free table-wrap--flush">
             <table class="table-clean">
                 <thead><tr><th>Jadwal</th><th>Berangkat</th><th>Tujuan</th><th class="num">Kloter</th><th>Status</th><th></th></tr></thead>
                 <tbody>

@@ -90,9 +90,9 @@
         <a class="btn-soft btn-soft--sm" href="{{ route('dealers.index') }}">Atur MOQ</a>
     </div>
     @if (empty($analysis['dealers']))
-        <div class="empty-state"><i class="bi bi-inbox" style="color: var(--blue-600)" aria-hidden="true"></i> Belum ada dealer. Tautkan kloter di bawah.</div>
+        <div class="empty-state"><i class="bi bi-inbox" aria-hidden="true"></i> Belum ada dealer. Tautkan kloter di bawah.</div>
     @else
-        <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+        <div class="table-wrap table-wrap--free table-wrap--flush">
             <table class="table-clean">
                 <thead><tr><th>Dealer</th><th>Wilayah</th><th class="num">Karton</th><th class="num">Volume (m³)</th><th class="num">MOQ (m³)</th><th>Status</th></tr></thead>
                 <tbody>
@@ -120,7 +120,7 @@
 <section class="panel panel--flush">
     <div class="panel__head p-3 pb-0 mb-2"><h2 class="panel__title">Kloter di jadwal ini ({{ $uploads->count() }})</h2></div>
     @if ($uploads->isNotEmpty())
-        <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+        <div class="table-wrap table-wrap--free table-wrap--flush">
             <table class="table-clean">
                 <thead><tr><th>Kloter</th><th>File</th><th class="num">Karton</th><th>Status</th><th></th></tr></thead>
                 <tbody>

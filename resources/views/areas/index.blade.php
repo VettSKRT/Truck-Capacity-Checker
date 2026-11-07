@@ -23,7 +23,7 @@
         <h2 class="panel__title">Jalur dan truk</h2>
         <span class="panel__hint">Nama tujuan dan truk default tiap jalur. Kesiapan kirim dinilai terhadap truk ini.</span>
     </div>
-    <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+    <div class="table-wrap table-wrap--free table-wrap--flush">
         <table class="table-clean">
             <thead><tr><th>Jalur</th><th>Tujuan</th><th>Truk default</th></tr></thead>
             <tbody>
@@ -72,11 +72,11 @@
     </div>
 
     @if ($areas->isEmpty())
-        <div class="empty-state"><i class="bi bi-inbox" style="color: var(--blue-600)" aria-hidden="true"></i> Belum ada area. Tambahkan di bawah.</div>
+        <div class="empty-state"><i class="bi bi-inbox" aria-hidden="true"></i> Belum ada area. Tambahkan di bawah.</div>
     @else
         <form method="POST" action="{{ route('areas.update') }}" id="areaForm">
             @csrf @method('PUT')
-            <div class="table-wrap table-wrap--free" style="border:0;border-radius:0">
+            <div class="table-wrap table-wrap--free table-wrap--flush">
                 <table class="table-clean">
                     <thead>
                         <tr><th>Kode</th><th>Nama (boleh kosong)</th><th>Jalur</th><th>Wilayah</th><th>Jadwal</th><th></th></tr>

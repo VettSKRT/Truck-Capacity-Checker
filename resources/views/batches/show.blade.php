@@ -20,5 +20,5 @@
 
 @push('scripts')
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
-<script src="{{ asset('js/packing.js') }}"></script>
+<script src="{{ asset('js/packing.js') }}?v={{ filemtime(public_path('js/packing.js')) }}"></script>
 @endpush
