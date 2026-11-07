@@ -104,8 +104,11 @@
                             <button type="button" class="chip-btn" data-zoom="out" aria-label="Perkecil tampilan"><i class="bi bi-zoom-out" aria-hidden="true"></i> Perkecil</button>
                         </div>
                         <div class="legend" id="legend" aria-label="Keterangan warna dealer"></div>
-                        <div id="plot" role="img" aria-label="Susunan karton di dalam truk"></div>
-                        <p class="pane-note"><strong>Klik sebuah karton</strong> untuk melihat isinya. Geser dengan mouse untuk memutar. Untuk memperbesar, pakai tombol Perbesar atau tahan Ctrl sambil menggulir. Setiap warna adalah satu dealer.</p>
+                        <div class="plot-wrap" id="plotWrap">
+                            <div id="plot" role="img" aria-label="Susunan karton di dalam truk"></div>
+                            <div class="item-tip" id="itemTip" hidden></div>
+                        </div>
+                        <p class="pane-note">Arahkan mouse ke karton untuk ringkasan, lalu <strong>klik</strong> untuk detail lengkap. Geser dengan mouse untuk memutar. Untuk memperbesar, pakai tombol Perbesar atau tahan Ctrl sambil menggulir. Setiap warna adalah satu dealer.</p>
                         <div class="item-panel" id="itemPanel" hidden>
                             <div class="item-panel__head">
                                 <strong><i class="bi bi-box-seam" aria-hidden="true"></i> Karton terpilih</strong>
@@ -113,6 +116,11 @@
                             </div>
                             <dl class="kv" id="itemBody"></dl>
                         </div>
+                    </div>
+                    <div class="plot-empty" id="lazyNote" hidden>
+                        <i class="bi bi-phone" aria-hidden="true"></i>
+                        Tampilan 3D memerlukan banyak daya untuk <span id="lazyCount">0</span> karton, jadi ditunda dulu di layar kecil agar perangkat tidak berat.<br>
+                        <button type="button" class="btn-soft mt-2" id="lazyBtn"><i class="bi bi-box" aria-hidden="true"></i> Tampilkan 3D</button>
                     </div>
                     <div class="plot-empty" id="ratioNote" hidden>
                         <i class="bi bi-info-circle" aria-hidden="true"></i>

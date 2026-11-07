@@ -34,7 +34,11 @@
         end: { eye: { x: -2.4, y: 0, z: 0.35 }, up: { x: 0, y: 0, z: 1 } },
     };
     const PLOT_CONFIG = { responsive: true, displaylogo: false, displayModeBar: false };
-    const MAX_EDGE_BOXES = 2500; // di atas ini garis tepi karton dilewati agar tetap ringan
+    // Garis tepi karton adalah bagian paling berat bagi GPU (puluhan ribu titik garis untuk satu jalur besar),
+    // jadi hanya digambar untuk muatan kecil.
+    const MAX_EDGE_BOXES = 150;
+    // Layar kecil (HP) atau muatan sangat besar: grafik 3D baru digambar setelah pengguna menekan "Tampilkan 3D"
+    const LAZY_3D_CARTONS = 2500;
     // Indeks segitiga kubus (urutan titik: lihat buildTraces)
     const CUBE_I = [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2];
     const CUBE_J = [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3];
@@ -44,7 +48,7 @@
     const state = {
         uploadId: null, routes: [], overall: null, routeKey: null,
         mode: 'tetris', seq: 0, data: null, view: 'iso', file: null, cam: clone(CAMERAS.iso), plotBound: false,
-        meshMap: {}, selected: null, hovered: null, clickHandled: false,
+        meshMap: {}, selected: null, hovered: null, clickHandled: false, hlIndex: null, plotDrawn: false, force3d: false, mouse: { x: 0, y: 0 },
     };
 
     const el = {
@@ -512,14 +516,13 @@
                 z.push(z0, z0, z0, z0, z1, z1, z1, z1);
                 for (let t = 0; t < 12; t++) { i.push(CUBE_I[t] + base); j.push(CUBE_J[t] + base); k.push(CUBE_K[t] + base); }
             });
-            const text = [];
-            list.forEach((it) => { const t = hoverText(it); for (let n = 0; n < 8; n++) text.push(t); });
             meshMap[traces.length] = list;
             traces.push({
-                type: 'mesh3d', x, y, z, i, j, k, text,
+                type: 'mesh3d', x, y, z, i, j, k,
                 color: dealerColor(code), opacity: 1, flatshading: true,
                 lighting: { ambient: 0.72, diffuse: 0.65, specular: 0.05, roughness: 0.9 },
-                name: `${code || 'Tanpa dealer'}`, hoverinfo: 'text', showlegend: false,
+                // 'none' = tanpa tooltip (ringan), tetapi karton tetap bisa diklik
+                name: `${code || 'Tanpa dealer'}`, hoverinfo: 'none', showlegend: false,
             });
         });
         state.meshMap = meshMap;
@@ -531,32 +534,26 @@
             traces.push({ type: 'scatter3d', mode: 'lines', x: ex, y: ey, z: ez, line: { color: 'rgba(22,32,51,0.55)', width: 1 }, hoverinfo: 'skip', showlegend: false });
         }
 
-        // Karton terpilih: disorot merah
-        const sel = state.selected;
-        if (sel) {
-            const g = 0.004; // sedikit lebih besar dari karton agar tidak berebut permukaan
-            const x0 = sel.x - g, x1 = sel.x + sel.length + g, y0 = sel.y - g, y1 = sel.y + sel.width + g, z0 = sel.z - g, z1 = sel.z + sel.height + g;
-            traces.push({
-                type: 'mesh3d', i: CUBE_I, j: CUBE_J, k: CUBE_K,
-                x: [x0, x0, x1, x1, x0, x0, x1, x1], y: [y0, y1, y1, y0, y0, y1, y1, y0], z: [z0, z0, z0, z0, z1, z1, z1, z1],
-                color: '#D4001A', opacity: 1, flatshading: true, hoverinfo: 'skip', showlegend: false,
-            });
-            const hx = [], hy = [], hz = [];
-            boxEdges(x0, y0, z0, x1, y1, z1, hx, hy, hz);
-            traces.push({ type: 'scatter3d', mode: 'lines', x: hx, y: hy, z: hz, line: { color: '#5C0010', width: 4 }, hoverinfo: 'skip', showlegend: false });
-        }
+        // Satu mesh kecil untuk menyorot karton terpilih. Selalu ada (disembunyikan) supaya memilih karton
+        // cukup mengubah mesh kecil ini dan seluruh susunan tidak perlu digambar ulang.
+        state.hlIndex = traces.length;
+        traces.push(Object.assign({
+            type: 'mesh3d', i: CUBE_I, j: CUBE_J, k: CUBE_K, color: '#D4001A', opacity: 1, flatshading: true,
+            hoverinfo: 'skip', showlegend: false, name: 'Karton terpilih', visible: !!state.selected,
+        }, highlightGeometry(state.selected)));
         return traces;
     }
 
-    /* ----------------------- Isi karton (hover dan klik) ----------------------- */
+    /* ----------------------- Isi karton (klik) ----------------------- */
 
     const SERVICE_LABEL = { same_day: 'Same Day', one_day: 'One Day', emergency: 'Emergency' };
     const mm = (m) => Math.round(m * 1000);
 
-    function hoverText(it) {
-        const kind = it.packing_type === 'receh' ? 'receh' : 'unit penuh';
-        return `<b>${esc(it.part_number || '-')}</b>${it.part_name ? ' ' + esc(it.part_name) : ''}<br>` +
-            `Dealer ${esc(it.customer_code || '-')}<br>${num(it.qty ?? 0, 0)} pcs (${kind}), ${num(it.weight_kg, 2)} kg<br><i>Klik untuk detail</i>`;
+    function highlightGeometry(it) {
+        if (!it) return { x: [0, 0, 0, 0, 0, 0, 0, 0], y: [0, 0, 0, 0, 0, 0, 0, 0], z: [0, 0, 0, 0, 0, 0, 0, 0] };
+        const g = 0.004; // sedikit lebih besar dari karton agar tidak berebut permukaan
+        const x0 = it.x - g, x1 = it.x + it.length + g, y0 = it.y - g, y1 = it.y + it.width + g, z0 = it.z - g, z1 = it.z + it.height + g;
+        return { x: [x0, x0, x1, x1, x0, x0, x1, x1], y: [y0, y1, y1, y0, y0, y1, y1, y0], z: [z0, z0, z0, z0, z1, z1, z1, z1] };
     }
 
     function renderItemPanel() {
@@ -581,16 +578,62 @@
     }
 
     function selectItem(item) {
+        if (item && item === state.selected) return;   // sudah terpilih: jangan sorot dua kali (klik Plotly + jalur cadangan)
         state.selected = item;
         renderItemPanel();
-        if (state.data && state.data.mode === 'tetris') {
-            Plotly.react('plot', buildTraces(state.data), plotLayout(), PLOT_CONFIG);
-        }
+        if (state.hlIndex === null || !state.plotDrawn) return;   // grafik belum digambar
+
+        // Hanya mesh sorotan yang diubah; susunan karton tidak digambar ulang
+        const g = highlightGeometry(item);
+        Plotly.restyle('plot', item ? { x: [g.x], y: [g.y], z: [g.z], visible: [true] } : { visible: [false] }, [state.hlIndex]);
     }
 
     function itemFromPoint(p) {
         const list = p && state.meshMap[p.curveNumber];
         return list ? list[Math.floor(p.pointNumber / 8)] || null : null;
+    }
+
+    /* ----------------------- Kotak info saat mouse di atas karton ----------------------- */
+    // Sengaja bukan tooltip Plotly: teks per titik sudut membuat adegan 3D berat. Ini hanya satu kotak DOM kecil
+    // yang diisi saat karton yang di-hover berganti, dan hanya di perangkat yang punya mouse.
+    const canHover = () => !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
+    let tipItem = null;
+    let tipRaf = 0;
+
+    function tipHtml(it) {
+        const kind = it.packing_type === 'receh' ? 'receh' : 'unit penuh';
+        return `<strong>${esc(it.part_number || '-')}</strong>${it.part_name ? ' ' + esc(it.part_name) : ''}<br>` +
+            `Dealer ${esc(it.customer_code || '-')}<br>${num(it.qty ?? 0, 0)} pcs (${kind}), ${num(it.weight_kg, 2)} kg<br><em>Klik untuk detail</em>`;
+    }
+
+    function positionTip() {
+        const tip = $('#itemTip');
+        const wrap = $('#plotWrap');
+        if (!tip || !wrap || tip.hidden || tipRaf) return;
+        tipRaf = requestAnimationFrame(() => {
+            tipRaf = 0;
+            const r = wrap.getBoundingClientRect();
+            let x = state.mouse.x - r.left + 14;
+            let y = state.mouse.y - r.top + 14;
+            if (x + tip.offsetWidth > r.width) x = Math.max(0, state.mouse.x - r.left - tip.offsetWidth - 14);
+            if (y + tip.offsetHeight > r.height) y = Math.max(0, state.mouse.y - r.top - tip.offsetHeight - 14);
+            tip.style.transform = `translate(${x}px, ${y}px)`;
+        });
+    }
+
+    function hideTip() {
+        const tip = $('#itemTip');
+        if (tip) tip.hidden = true;
+        tipItem = null;
+    }
+
+    function showTip(it) {
+        const tip = $('#itemTip');
+        if (!tip || !canHover()) return;
+        if (!it) { hideTip(); return; }
+        if (it !== tipItem) { tip.innerHTML = tipHtml(it); tipItem = it; }   // isi hanya diganti bila karton berganti
+        tip.hidden = false;
+        positionTip();
     }
 
     function renderLegend(items) {
@@ -617,16 +660,26 @@
 
     function render3d(data) {
         const isRatio = data.mode === 'ratio';
-        $('#view3d').hidden = isRatio;
+        const small = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+        const lazy = !isRatio && !state.force3d && (small || data.items.length > LAZY_3D_CARTONS);
+
+        $('#view3d').hidden = isRatio || lazy;
         $('#ratioNote').hidden = !isRatio;
-        if (isRatio) return;
+        const lazyNote = $('#lazyNote');
+        if (lazyNote) {
+            lazyNote.hidden = !lazy;
+            $('#lazyCount').textContent = num(data.items.length, 0);
+        }
+        if (isRatio || lazy) return;
 
         dealerIndex = new Map();
         Array.from(new Set(data.items.map((i) => i.customer_code || ''))).sort().forEach((c) => dealerColor(c));
 
         renderLegend(data.items);
+        hideTip();
         renderItemPanel();
         Plotly.react('plot', buildTraces(data), plotLayout(), PLOT_CONFIG);
+        state.plotDrawn = true;
         bindPlotGuards();
     }
 
@@ -668,11 +721,16 @@
             const it = itemFromPoint(ev && ev.points && ev.points[0]);
             if (it) { state.clickHandled = true; selectItem(it); }
         });
-        plot.on('plotly_hover', (ev) => { state.hovered = itemFromPoint(ev && ev.points && ev.points[0]); });
-        plot.on('plotly_unhover', () => { state.hovered = null; });
+        plot.on('plotly_hover', (ev) => {
+            state.hovered = itemFromPoint(ev && ev.points && ev.points[0]);
+            showTip(state.hovered);
+        });
+        plot.on('plotly_unhover', () => { state.hovered = null; hideTip(); });
+        plot.addEventListener('mousemove', (e) => { state.mouse = { x: e.clientX, y: e.clientY }; positionTip(); });
+        plot.addEventListener('mouseleave', hideTip);
 
         let down = null;
-        plot.addEventListener('mousedown', (e) => { down = { x: e.clientX, y: e.clientY }; state.clickHandled = false; });
+        plot.addEventListener('mousedown', (e) => { down = { x: e.clientX, y: e.clientY }; state.clickHandled = false; hideTip(); });
         plot.addEventListener('mouseup', (e) => {
             const moved = down ? Math.hypot(e.clientX - down.x, e.clientY - down.y) : 99;
             down = null;
@@ -682,6 +740,9 @@
         });
         state.plotBound = true;
     }
+
+    const lazyBtn = $('#lazyBtn');
+    if (lazyBtn) lazyBtn.addEventListener('click', () => { state.force3d = true; if (state.data) render3d(state.data); });
 
     const clearBtn = $('#itemClear');
     if (clearBtn) clearBtn.addEventListener('click', () => selectItem(null));
