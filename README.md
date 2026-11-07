@@ -84,7 +84,14 @@ php artisan db:seed                 # kendaraan, 25 karton, dan master barang CO
 php artisan products:import sample_products.csv   # import/update master barang (ganti dengan data asli)
 ```
 
-File contoh: `sample_data.csv` (order) dan `sample_products.csv` (master barang:
+File contoh:
+- `sample_data_lengkap.csv`: order lengkap untuk demo (31 baris, 9 dealer, status 1 sampai 4, semua 8 jalur, ready sekitar 84% pada CDD). Dipakai oleh tes agar tetap valid.
+- `sample_data.csv`: order kecil (7 baris).
+- `sample_products.csv`: master barang (6 barang). Kode area sample (SA sampai SG) dan dealer same day `SH09` adalah CONTOH di `config/logistics.php`.
+
+Jalur disimpan saat file diunggah. Kloter lama yang diunggah sebelum mapping diisi tetap abu-abu; unggah ulang untuk mendapat warna jalur.
+
+Format master barang (
 Part Number, Name, Weight kg/pcs, No Karton, Qty per Box, Category small|heavy, Location).
 
 ## Teknologi

@@ -1,0 +1,32 @@
+Cargo Destination,Customer Code,Customer Name,Part Number,Qty,Status,Service Type
+Jakarta,SA38,Dealer Jakarta Pusat,SMP-0002,600,4,one_day
+Jakarta,SA38,Dealer Jakarta Pusat,SMP-0005,4,4,one_day
+Jakarta,SA38,Dealer Jakarta Pusat,SMP-0001,230,4,one_day
+Jakarta,SA38,Dealer Jakarta Pusat,SMP-0004,40,3,one_day
+Tangerang,SA12,Dealer Tangerang,SMP-0003,1000,4,one_day
+Tangerang,SA12,Dealer Tangerang,SMP-0004,60,4,one_day
+Bandung,SB21,Dealer Bandung Kota,SMP-0005,12,4,emergency
+Bandung,SB21,Dealer Bandung Kota,SMP-0006,16,4,emergency
+Bandung,SB21,Dealer Bandung Kota,SMP-0002,500,4,one_day
+Bandung,SB21,Dealer Bandung Kota,SMP-0001,200,2,one_day
+Semarang,SC07,Dealer Semarang,SMP-0001,800,4,one_day
+Semarang,SC07,Dealer Semarang,SMP-0004,80,4,one_day
+Semarang,SC07,Dealer Semarang,SMP-0005,8,4,one_day
+Semarang,SC07,Dealer Semarang,SMP-0006,10,1,one_day
+Surabaya,SD15,Dealer Surabaya Timur,SMP-0002,700,4,one_day
+Surabaya,SD15,Dealer Surabaya Timur,SMP-0006,20,4,one_day
+Surabaya,SD15,Dealer Surabaya Timur,SMP-0003,900,4,one_day
+Surabaya,SD15,Dealer Surabaya Timur,SMP-0002,100,3,one_day
+Malang,SE33,Dealer Malang,SMP-0005,12,4,one_day
+Malang,SE33,Dealer Malang,SMP-0001,600,4,one_day
+Malang,SE33,Dealer Malang,SMP-0004,46,4,one_day
+Malang,SE33,Dealer Malang,SMP-0003,300,2,emergency
+Medan,SF09,Dealer Medan,SMP-0002,640,4,one_day
+Medan,SF09,Dealer Medan,SMP-0006,24,4,one_day
+Medan,SF09,Dealer Medan,SMP-0001,330,4,one_day
+Medan,SF09,Dealer Medan,SMP-0005,3,1,one_day
+Palembang,SG44,Dealer Palembang,SMP-0005,10,4,one_day
+Palembang,SG44,Dealer Palembang,SMP-0002,200,4,one_day
+Palembang,SG44,Dealer Palembang,SMP-0003,450,4,one_day
+Cirebon,SH09,Dealer Cirebon Express,SMP-0001,300,4,same_day
+Cirebon,SH09,Dealer Cirebon Express,SMP-0006,6,4,same_day

@@ -48,7 +48,15 @@ return [
      |   'BD' => 2,
      */
     'area_routes' => [
-        // 'SA' => 1,
+        // CONTOH untuk data sample (sample_data.csv dan sample_data_lengkap.csv).
+        // TODO: ganti dengan kode area asli begitu diketahui; kode yang tidak terdaftar tampil abu-abu.
+        'SA' => 1,
+        'SB' => 2,
+        'SC' => 3,
+        'SD' => 4,
+        'SE' => 5,
+        'SF' => 6,
+        'SG' => 7,
     ],
 
     /*
@@ -56,7 +64,7 @@ return [
      | TODO: isi sesuai data asli.
      */
     'same_day_dealers' => [
-        // 'SA38',
+        'SH09', // CONTOH untuk sample_data_lengkap.csv; ganti dengan dealer terpilih yang asli
     ],
 
     // Nama jalur (opsional, untuk tampilan).
