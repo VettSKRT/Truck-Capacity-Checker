@@ -36,11 +36,14 @@
                 <a class="nav-item {{ request()->routeIs('batches.*', 'result') ? 'is-active' : '' }}" href="{{ route('batches.index') }}">
                     <i class="bi bi-clock-history" aria-hidden="true"></i> Riwayat Kloter
                 </a>
-                <span class="nav-item is-disabled" aria-disabled="true">
-                    <i class="bi bi-calendar3" aria-hidden="true"></i> Penjadwalan <span class="nav-soon">Segera</span>
-                </span>
+                <a class="nav-item {{ request()->routeIs('schedule.*') ? 'is-active' : '' }}" href="{{ route('schedule.index') }}">
+                    <i class="bi bi-calendar3" aria-hidden="true"></i> Penjadwalan
+                </a>
 
                 <span class="sidebar__group">Data</span>
+                <a class="nav-item {{ request()->routeIs('dealers.*') ? 'is-active' : '' }}" href="{{ route('dealers.index') }}">
+                    <i class="bi bi-people" aria-hidden="true"></i> Dealer dan MOQ
+                </a>
                 <a class="nav-item {{ request()->routeIs('products.*') ? 'is-active' : '' }}" href="{{ route('products.index') }}">
                     <i class="bi bi-boxes" aria-hidden="true"></i> Master Barang
                 </a>

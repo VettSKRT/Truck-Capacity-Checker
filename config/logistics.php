@@ -57,6 +57,9 @@ return [
         'SE' => 5,
         'SF' => 6,
         'SG' => 7,
+        'SJ' => 5,
+        'SK' => 6,
+        'SL' => 7,
     ],
 
     /*
@@ -66,6 +69,47 @@ return [
     'same_day_dealers' => [
         'SH09', // CONTOH untuk sample_data_lengkap.csv; ganti dengan dealer terpilih yang asli
     ],
+
+    /*
+     | WILAYAH dan JENIS JADWAL.
+     | Wilayah ditentukan dari kode area dealer (mis. "SA" pada "SA38").
+     |  - Jawa dan Sumatra (kecuali Aceh): pengiriman HARIAN (daily).
+     |  - Aceh dan luar pulau: mengikuti JADWAL KAPAL (weekly), harus memenuhi MOQ dealer.
+     */
+    'regions' => [
+        'jawa' => 'Jawa',
+        'sumatra' => 'Sumatra (selain Aceh)',
+        'aceh' => 'Aceh',
+        'luar_pulau' => 'Luar pulau',
+    ],
+    'region_schedule' => [
+        'jawa' => 'daily',
+        'sumatra' => 'daily',
+        'aceh' => 'kapal',
+        'luar_pulau' => 'kapal',
+    ],
+
+    /*
+     | Mapping KODE AREA -> WILAYAH.
+     | CONTOH untuk data sample; TODO: ganti dengan kode area asli.
+     | Kode area yang tidak terdaftar tampil sebagai "Wilayah belum diatur".
+     */
+    'area_regions' => [
+        'SA' => 'jawa',
+        'SB' => 'jawa',
+        'SC' => 'jawa',
+        'SD' => 'jawa',
+        'SE' => 'jawa',
+        'SH' => 'jawa',
+        'SF' => 'sumatra',
+        'SG' => 'sumatra',
+        'SJ' => 'luar_pulau',
+        'SK' => 'luar_pulau',
+        'SL' => 'aceh',
+    ],
+
+    // Kirim harian: Same Day berangkat hari yang sama, selain itu (One Day dan Emergency) keesokan harinya.
+    'daily_lead_days' => ['same_day' => 0, 'one_day' => 1, 'emergency' => 1],
 
     // Nama jalur (opsional, untuk tampilan).
     'route_labels' => [

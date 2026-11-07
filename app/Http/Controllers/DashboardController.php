@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Box;
+use App\Models\Shipment;
 use App\Models\Upload;
+use App\Services\ScheduleService;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(ScheduleService $schedule)
     {
         $today = now()->startOfDay();
 
@@ -25,6 +27,14 @@ class DashboardController extends Controller
 
         $recent = Upload::with('vehicle')->withSummary()->latest()->limit(8)->get();
 
-        return view('dashboard', compact('stats', 'recent'));
+        // Jadwal kapal terdekat dan kloter yang masih menunggu jadwal kapal
+        $nextShipments = Shipment::with('vehicle')->withCount('uploads')
+            ->where('status', Shipment::PLANNED)->where('departs_on', '>=', $today)
+            ->orderBy('departs_on')->limit(3)->get();
+
+        $waitingForShipment = Upload::whereNull('shipment_id')->latest('id')->limit(60)->get()
+            ->filter(fn ($u) => $schedule->analyzeUpload($u)['needs_shipment'])->count();
+
+        return view('dashboard', compact('stats', 'recent', 'nextShipments', 'waitingForShipment'));
     }
 }

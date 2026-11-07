@@ -30,6 +30,40 @@
     </div>
 </div>
 
+@if ($waitingForShipment > 0)
+    <div class="notice notice--warn">
+        <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+        <div><strong>{{ $waitingForShipment }} kloter</strong> berisi dealer luar pulau atau Aceh dan belum ditautkan ke jadwal kapal.
+            <a href="{{ route('schedule.index') }}">Buka Penjadwalan</a></div>
+    </div>
+@endif
+
+<section class="panel">
+    <div class="panel__head">
+        <h2 class="panel__title">Jadwal kapal terdekat</h2>
+        <a href="{{ route('schedule.index') }}" class="btn-soft btn-soft--sm">Semua jadwal</a>
+    </div>
+    @if ($nextShipments->isEmpty())
+        <p class="panel__hint">Belum ada jadwal kapal mendatang. <a href="{{ route('schedule.create') }}">Tambah jadwal kapal</a>.</p>
+    @else
+        <div class="table-wrap table-wrap--free">
+            <table class="table-clean">
+                <tbody>
+                    @foreach ($nextShipments as $s)
+                        <tr>
+                            <td class="nowrap"><a href="{{ route('schedule.show', $s) }}"><strong>{{ $s->code }}</strong></a></td>
+                            <td class="nowrap">{{ $s->departs_on->translatedFormat('D, d M Y') }}@if ($s->is_tentative) <span class="badge-status is-wait ms-1">Tentatif</span>@endif</td>
+                            <td>{{ $s->destination }}</td>
+                            <td>{{ $s->vehicle?->name ?? '-' }}</td>
+                            <td class="num">{{ $s->uploads_count }} kloter</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+</section>
+
 <section class="panel panel--flush">
     <div class="panel__head p-3 pb-0 mb-2">
         <h2 class="panel__title">Kloter terbaru</h2>

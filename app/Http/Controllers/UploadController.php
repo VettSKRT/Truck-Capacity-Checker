@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Imports\CargoImport;
+use App\Models\Dealer;
 use App\Models\Product;
 use App\Models\Upload;
 use App\Models\Vehicle;
@@ -98,6 +99,8 @@ class UploadController extends Controller
                 'binding_constraint' => $sum['binding'],
                 'status' => $sum['over_capacity'] ? Upload::STATUS_OVER : ($sum['ready'] ? Upload::STATUS_READY : Upload::STATUS_WAIT),
             ]);
+
+            Dealer::syncFromBoxes(); // dealer baru masuk daftar, MOQ diisi manual
 
             return $upload;
         });

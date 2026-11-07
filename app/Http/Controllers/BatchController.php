@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Shipment;
 use App\Models\Upload;
 use App\Models\Vehicle;
+use App\Services\ScheduleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -53,15 +55,29 @@ class BatchController extends Controller
         ]);
     }
 
-    public function show(Upload $upload)
+    public function show(Upload $upload, ScheduleService $schedule)
     {
-        $upload->load('vehicle');
+        $upload->load(['vehicle', 'shipment']);
         $upload->loadSum('boxes as carton_total', 'box_count');
 
         return view('batches.show', [
             'upload' => $upload,
             'vehicles' => Vehicle::orderBy('id')->get(),
+            'schedule' => $schedule->analyzeUpload($upload),
+            'shipments' => Shipment::with('vehicle')->where('status', Shipment::PLANNED)->orderBy('departs_on')->get(),
         ]);
+    }
+
+    /** Tautkan kloter ke jadwal kapal, atau lepas (shipment_id kosong). */
+    public function schedule(Request $request, Upload $upload)
+    {
+        $data = $request->validate(['shipment_id' => 'nullable|integer|exists:shipments,id']);
+
+        $upload->update(['shipment_id' => $data['shipment_id'] ?? null]);
+
+        return back()->with('status', $upload->shipment_id
+            ? "Kloter {$upload->code} ditautkan ke jadwal J-" . str_pad((string) $upload->shipment_id, 3, '0', STR_PAD_LEFT) . '.'
+            : "Kloter {$upload->code} dilepas dari jadwal kapal.");
     }
 
     public function destroy(Upload $upload)

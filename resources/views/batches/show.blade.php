@@ -16,6 +16,8 @@
 
 <div id="messages" aria-live="polite"></div>
 
+@include('partials.schedule-panel', ['upload' => $upload, 'schedule' => $schedule, 'shipments' => $shipments])
+
 @include('partials.results', ['uploadId' => $upload->id])
 @endsection
 

@@ -49,10 +49,25 @@ Aplikasi Laravel untuk mengecek kapasitas truk dengan visualisasi 3D real-time.
 | Cek Kapasitas (`/packing`) | Unggah file order, pilih kendaraan, lihat hasil dan tampilan 3D |
 | Riwayat Kloter (`/riwayat`) | Daftar semua kloter, filter, buka ulang hasil tersimpan, laporan, hapus |
 | Master Barang (`/master-barang`) | Lihat, cari, dan impor master barang |
+| Penjadwalan (`/penjadwalan`) | Jadwal kapal (manual), kloter menunggu jadwal, pengiriman harian |
+| Dealer dan MOQ (`/dealer`) | MOQ per dealer, wilayah, dan jenis jadwal |
 | Kendaraan dan Karton (`/referensi`) | Data acuan kendaraan dan 25 ukuran karton |
 
 **Satu kali unggah file order = satu kloter** (tabel `uploads`), tersimpan permanen sehingga bisa dibuka ulang dan dihitung ulang
 dengan kendaraan lain tanpa unggah ulang. Status kloter: Siap dikirim (rasio >= 80%), Belum siap, atau Melebihi kapasitas (> 100%).
+
+## Penjadwalan
+
+- **Wilayah** ditentukan dari kode area dealer (`SA` pada `SA38`) lewat `area_regions` di `config/logistics.php`.
+  Jawa dan Sumatra (selain Aceh) = **pengiriman harian**. Aceh dan luar pulau = **jadwal kapal**.
+- **Harian:** Same Day berangkat hari yang sama, One Day dan Emergency keesokan harinya (`daily_lead_days`).
+- **Jadwal kapal** (menu Penjadwalan) diinput manual: tanggal berangkat, tujuan, kapasitas kontainer, dan status
+  (Direncanakan, Sudah berangkat, Dibatalkan). Tanggal **tentatif** bisa maju atau mundur.
+  Satu kloter ditautkan ke satu jadwal; satu jadwal boleh berisi beberapa kloter.
+- **MOQ per dealer** (menu Dealer dan MOQ) dalam m3, diisi manual. Pada halaman jadwal, volume Cargo Ready tiap dealer
+  dibanding MOQ-nya: Memenuhi, Kurang sekian m3, atau MOQ belum diatur.
+- Dealer baru otomatis terdaftar saat file order diunggah.
+- File contoh `sample_data_kapal.csv` (dealer luar pulau dan Aceh) dan `DealerSeeder` (MOQ contoh) untuk mencoba.
 
 ## Kendaraan & aturan muatan
 

@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             VehicleSeeder::class,
             CartonSeeder::class,
             ProductSeeder::class, // data contoh, ganti dengan master barang asli
+            DealerSeeder::class,  // MOQ contoh, ganti lewat menu Dealer dan MOQ
         ]);
     }
 }

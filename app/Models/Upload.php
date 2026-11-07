@@ -16,7 +16,7 @@ class Upload extends Model
     public const STATUS_OVER = 'Melebihi Kapasitas';
 
     protected $fillable = [
-        'filename', 'filepath', 'vehicle_id',
+        'filename', 'filepath', 'vehicle_id', 'shipment_id',
         'total_volume', 'total_weight',
         'ratio', 'volume_ratio', 'weight_ratio', 'binding_constraint',
         'status',
@@ -30,6 +30,11 @@ class Upload extends Model
     public function vehicle()
     {
         return $this->belongsTo(Vehicle::class);
+    }
+
+    public function shipment()
+    {
+        return $this->belongsTo(Shipment::class);
     }
 
     /** Tambah jumlah karton (carton_total) dan jumlah dealer (dealer_total). */

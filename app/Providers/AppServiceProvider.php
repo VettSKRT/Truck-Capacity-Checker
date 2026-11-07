@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\LoadCalculator;
+use App\Services\RegionResolver;
 use App\Services\RouteResolver;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Carbon;
@@ -17,6 +18,12 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(LoadCalculator::class, fn () => new LoadCalculator(
             (float) config('logistics.ready_ratio', 0.8)
+        ));
+
+        $this->app->singleton(RegionResolver::class, fn ($app) => new RegionResolver(
+            $app->make(RouteResolver::class),
+            (array) config('logistics.area_regions', []),
+            (array) config('logistics.region_schedule', []),
         ));
 
         $this->app->singleton(RouteResolver::class, fn () => new RouteResolver(

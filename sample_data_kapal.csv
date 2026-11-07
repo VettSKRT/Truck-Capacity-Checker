@@ -1,0 +1,8 @@
+Cargo Destination,Customer Code,Customer Name,Part Number,Qty,Status,Service Type
+Banjarmasin,SJ10,Dealer Banjarmasin,SMP-0002,300,4,one_day
+Banjarmasin,SJ10,Dealer Banjarmasin,SMP-0001,200,4,one_day
+Makassar,SK05,Dealer Makassar,SMP-0004,40,4,one_day
+Makassar,SK05,Dealer Makassar,SMP-0003,500,4,one_day
+Banda Aceh,SL02,Dealer Banda Aceh,SMP-0005,6,4,one_day
+Banda Aceh,SL02,Dealer Banda Aceh,SMP-0006,10,2,one_day
+Pontianak,SJ21,Dealer Pontianak,SMP-0006,12,4,one_day
