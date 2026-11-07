@@ -17,7 +17,9 @@
     <li><strong>Jalur 8 (Same Day)</strong>Khusus dealer terpilih. Atur di menu <a href="{{ route('dealers.index', ['moq' => 'sameday']) }}">Dealer dan MOQ</a>.</li>
 </ul>
 
-<form method="POST" action="{{ route('areas.routes') }}" class="panel panel--flush">
+<form method="POST" action="{{ route('areas.routes') }}" class="panel panel--flush"
+      data-confirm="Nama tujuan dan truk default yang baru langsung dipakai untuk menghitung rasio isi di semua kloter, termasuk riwayat."
+      data-confirm-title="Simpan pengaturan jalur?" data-confirm-ok="Simpan" data-confirm-variant="info" data-confirm-icon="bi-truck">
     @csrf @method('PUT')
     <div class="panel__head p-3 pb-0 mb-2">
         <h2 class="panel__title">Jalur dan truk</h2>
@@ -74,7 +76,9 @@
     @if ($areas->isEmpty())
         <div class="empty-state"><i class="bi bi-inbox" aria-hidden="true"></i> Belum ada area. Tambahkan di bawah.</div>
     @else
-        <form method="POST" action="{{ route('areas.update') }}" id="areaForm">
+        <form method="POST" action="{{ route('areas.update') }}" id="areaForm"
+              data-confirm="Jalur dan wilayah setiap karton di semua kloter dihitung ulang mengikuti pemetaan kode area yang baru."
+              data-confirm-title="Simpan perubahan area?" data-confirm-ok="Simpan" data-confirm-variant="info" data-confirm-icon="bi-signpost-split">
             @csrf @method('PUT')
             <div class="table-wrap table-wrap--free table-wrap--flush">
                 <table class="table-clean">
@@ -110,7 +114,9 @@
                                 </td>
                                 <td class="actions">
                                     <button type="submit" class="btn-soft btn-soft--sm btn-soft--danger" form="del-{{ $a->id }}"
-                                            aria-label="Hapus area {{ $a->code }}" onclick="return confirm('Hapus area {{ $a->code }}? Dealer dengan kode area ini jadi tanpa jalur dan wilayah.')">
+                                            aria-label="Hapus area {{ $a->code }}"
+                                            data-confirm="Dealer dengan kode area {{ $a->code }} jadi tanpa jalur dan wilayah. Jalur di semua kloter dihitung ulang."
+                                            data-confirm-title="Hapus area {{ $a->code }}?" data-confirm-ok="Hapus area">
                                         <i class="bi bi-trash" aria-hidden="true"></i>
                                     </button>
                                 </td>

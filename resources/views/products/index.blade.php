@@ -33,7 +33,9 @@
         </form>
     </div>
     <div class="col-lg-5">
-        <form method="POST" action="{{ route('products.import') }}" enctype="multipart/form-data" class="panel h-100">
+        <form method="POST" action="{{ route('products.import') }}" enctype="multipart/form-data" class="panel h-100"
+              data-confirm="Part yang sudah ada diperbarui dengan data dari file ini (berat, karton, isi per box, lokasi). Part baru ditambahkan."
+              data-confirm-title="Impor master barang?" data-confirm-ok="Impor" data-confirm-variant="info" data-confirm-icon="bi-upload" data-loading="Mengimpor master barang">
             @csrf
             <label class="field-label" for="product_file">Impor atau perbarui master barang</label>
             <div class="d-flex gap-2">

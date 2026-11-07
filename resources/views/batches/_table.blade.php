@@ -31,7 +31,8 @@
                         <a href="{{ route('batches.show', $b) }}" class="btn-soft btn-soft--sm">Buka</a>
                         @unless ($compact)
                             <form action="{{ route('batches.destroy', $b) }}" method="POST" class="d-inline"
-                                  onsubmit="return confirm('Hapus kloter {{ $b->code }} ({{ e($b->filename) }})? Data karton di kloter ini ikut terhapus dan tidak bisa dikembalikan.')">
+                                  data-confirm="File {{ $b->filename }} beserta seluruh data kartonnya akan dihapus permanen dan tidak bisa dikembalikan."
+                                  data-confirm-title="Hapus kloter {{ $b->code }}?" data-confirm-ok="Hapus kloter" data-loading="Menghapus kloter">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn-soft btn-soft--sm btn-soft--danger" aria-label="Hapus kloter {{ $b->code }}"><i class="bi bi-trash" aria-hidden="true"></i></button>

@@ -14,7 +14,14 @@
     {{-- Kartu jalur: pilih satu jalur untuk melihat truknya --}}
     <div>
         <h2 class="panel__title mb-2">Jalur dalam kloter ini</h2>
-        <div class="route-grid" id="routeGrid" aria-label="Daftar jalur"></div>
+        <div class="route-grid" id="routeGrid" aria-label="Daftar jalur" aria-busy="true">
+            {{-- Kerangka sementara selagi data jalur dimuat --}}
+            @for ($i = 0; $i < 4; $i++)
+                <div class="route-card is-skeleton" aria-hidden="true">
+                    <span class="skel skel--title"></span><span class="skel"></span><span class="skel skel--short"></span><span class="skel skel--bar"></span>
+                </div>
+            @endfor
+        </div>
     </div>
 
     {{-- Detail satu jalur --}}
@@ -76,10 +83,10 @@
 
         <div class="panel panel--flush mt-3">
             <div class="toolbar">
-                <ul class="tabs" role="tablist">
-                    <li role="presentation"><button type="button" class="active" id="tab3d" data-bs-toggle="tab" data-bs-target="#pane3d" role="tab" aria-controls="pane3d" aria-selected="true"><i class="bi bi-box" aria-hidden="true"></i> Tampilan 3D</button></li>
-                    <li role="presentation"><button type="button" id="tabDealer" data-bs-toggle="tab" data-bs-target="#paneDealer" role="tab" aria-controls="paneDealer" aria-selected="false"><i class="bi bi-list-ul" aria-hidden="true"></i> Rincian per dealer</button></li>
-                    <li role="presentation"><button type="button" id="tabUnloaded" data-bs-toggle="tab" data-bs-target="#paneUnloaded" role="tab" aria-controls="paneUnloaded" aria-selected="false"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Tidak termuat <span class="count" id="unloadedCount" hidden>0</span></button></li>
+                <ul class="tabs" role="tablist" aria-label="Rincian jalur">
+                    <li role="presentation"><button type="button" class="active" id="tab3d" data-tab="#pane3d" role="tab" aria-controls="pane3d" aria-selected="true"><i class="bi bi-box" aria-hidden="true"></i> Tampilan 3D</button></li>
+                    <li role="presentation"><button type="button" id="tabDealer" data-tab="#paneDealer" role="tab" aria-controls="paneDealer" aria-selected="false"><i class="bi bi-list-ul" aria-hidden="true"></i> Rincian per dealer</button></li>
+                    <li role="presentation"><button type="button" id="tabUnloaded" data-tab="#paneUnloaded" role="tab" aria-controls="paneUnloaded" aria-selected="false"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Tidak termuat <span class="count" id="unloadedCount" hidden>0</span></button></li>
                 </ul>
                 <div class="mode-switch">
                     <span class="mode-switch__label" id="modeLabel">Cara hitung:</span>
@@ -107,6 +114,9 @@
                         <div class="plot-wrap" id="plotWrap">
                             <div id="plot" role="img" aria-label="Susunan karton di dalam truk"></div>
                             <div class="item-tip" id="itemTip" hidden></div>
+                            <div class="plot-loader" id="plotLoader" role="status" aria-live="polite" hidden>
+                                @include('partials.loader', ['text' => 'Menyusun karton di truk', 'id' => 'plotLoaderText'])
+                            </div>
                         </div>
                         <p class="pane-note">Arahkan mouse ke karton untuk ringkasan, lalu <strong>klik</strong> untuk detail lengkap. Geser dengan mouse untuk memutar. Untuk memperbesar, pakai tombol Perbesar atau tahan Ctrl sambil menggulir. Setiap warna adalah satu dealer.</p>
                         <div class="item-panel" id="itemPanel" hidden>

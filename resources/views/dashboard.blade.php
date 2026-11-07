@@ -48,7 +48,7 @@
                 <span>14 hari <b>{{ $fmt($trendTotal, 2) }} m³</b></span>
             </div>
         </div>
-        <div class="chart" id="trendChart" role="img"
+        <div class="chart" id="trendChart" data-area-chart data-series='@json($trend)' role="img"
              aria-label="Grafik volume karton Cargo Ready per hari selama 14 hari terakhir. Hari ini {{ $fmt($trendToday, 2) }} meter kubik."></div>
     </section>
 
@@ -129,35 +129,5 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.plot.ly/plotly-basic-2.35.2.min.js" charset="utf-8"></script>
-<script>
-    (function () {
-        var el = document.getElementById('trendChart');
-        if (!el || !window.Plotly) return;
-        var t = @json($trend);
-        var css = getComputedStyle(document.documentElement);
-        var c = function (name) { return css.getPropertyValue(name).trim(); };
-        var fmt = function (n, d) { return Number(n).toLocaleString('id-ID', { minimumFractionDigits: d, maximumFractionDigits: d }); };
-
-        var hover = t.dates.map(function (_, i) {
-            return '<b>' + t.labels[i] + '</b><br>' + fmt(t.volume[i], 2) + ' m³<br>' + fmt(t.weight[i], 0) + ' kg, ' + fmt(t.cartons[i], 0) + ' karton';
-        });
-
-        Plotly.newPlot(el, [{
-            type: 'scatter', mode: 'lines+markers', x: t.labels, y: t.volume,
-            line: { color: c('--accent'), width: 2.5, shape: 'spline', smoothing: 0.4 },
-            marker: { color: c('--accent'), size: 6 },
-            fill: 'tozeroy',
-            fillgradient: { type: 'vertical', colorscale: [[0, 'rgba(48,209,88,0)'], [0.6, 'rgba(48,209,88,0.12)'], [1, 'rgba(0,229,255,0.35)']] },
-            text: hover, hoverinfo: 'text', hoverlabel: { bgcolor: '#252525', bordercolor: c('--accent'), font: { color: '#fff', family: 'Inter, sans-serif', size: 13 } },
-        }], {
-            margin: { l: 56, r: 24, t: 8, b: 40 },
-            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-            font: { family: 'Inter, sans-serif', color: c('--text-2'), size: 12 },
-            xaxis: { showgrid: false, zeroline: false, showline: false, fixedrange: true, ticks: 'outside', ticklen: 8, tickcolor: 'rgba(0,0,0,0)', tickfont: { family: 'JetBrains Mono, monospace', size: 11 } },
-            yaxis: { gridcolor: c('--line'), zeroline: false, showline: false, fixedrange: true, rangemode: 'tozero', ticksuffix: ' m³', tickfont: { family: 'JetBrains Mono, monospace', size: 11 } },
-            showlegend: false,
-        }, { responsive: true, displaylogo: false, displayModeBar: false });
-    })();
-</script>
+<script src="{{ asset('js/area-chart.js') }}?v={{ filemtime(public_path('js/area-chart.js')) }}" defer></script>
 @endpush

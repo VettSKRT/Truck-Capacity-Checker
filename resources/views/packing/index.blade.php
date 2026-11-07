@@ -52,7 +52,11 @@
 @include('partials.results')
 @endsection
 
+@push('head')
+{{-- Plotly 3D diunduh oleh packing.js saat dibutuhkan; sambungan ke CDN disiapkan lebih awal --}}
+<link rel="preconnect" href="https://cdn.plot.ly" crossorigin>
+@endpush
+
 @push('scripts')
-<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
-<script src="{{ asset('js/packing.js') }}?v={{ filemtime(public_path('js/packing.js')) }}"></script>
+<script src="{{ asset('js/packing.js') }}?v={{ filemtime(public_path('js/packing.js')) }}" defer></script>
 @endpush

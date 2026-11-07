@@ -131,7 +131,9 @@
                             <td class="num">{{ $fmt($u->carton_total ?? 0, 0) }}</td>
                             <td>@include('partials.batch-status', ['overall' => $summaries[$u->id]['overall']])</td>
                             <td class="actions">
-                                <form method="POST" action="{{ route('schedule.detach', [$shipment, $u]) }}" class="d-inline">
+                                <form method="POST" action="{{ route('schedule.detach', [$shipment, $u]) }}" class="d-inline"
+                                      data-confirm="Kloter {{ $u->code }} kembali menjadi belum dijadwalkan dan tidak dihitung lagi di MOQ jadwal ini."
+                                      data-confirm-title="Lepas {{ $u->code }} dari {{ $shipment->code }}?" data-confirm-ok="Lepas kloter" data-confirm-variant="warn" data-confirm-icon="bi-link-45deg">
                                     @csrf @method('DELETE')
                                     <button class="btn-soft btn-soft--sm" type="submit">Lepas</button>
                                 </form>
@@ -169,7 +171,9 @@
     <section class="panel"><h2 class="panel__title mb-1">Catatan</h2><p class="mb-0">{{ $shipment->notes }}</p></section>
 @endif
 
-<form method="POST" action="{{ route('schedule.destroy', $shipment) }}" onsubmit="return confirm('Hapus jadwal {{ $shipment->code }}? Kloter yang tertaut tidak ikut terhapus, hanya kembali menjadi belum dijadwalkan.')">
+<form method="POST" action="{{ route('schedule.destroy', $shipment) }}"
+      data-confirm="Kloter yang tertaut tidak ikut terhapus, hanya kembali menjadi belum dijadwalkan."
+      data-confirm-title="Hapus jadwal {{ $shipment->code }}?" data-confirm-ok="Hapus jadwal" data-loading="Menghapus jadwal">
     @csrf @method('DELETE')
     <button class="btn-soft btn-soft--danger" type="submit"><i class="bi bi-trash" aria-hidden="true"></i> Hapus jadwal ini</button>
 </form>

@@ -14,9 +14,18 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="{{ asset('css/packing.css') }}?v={{ filemtime(public_path('css/packing.css')) }}" rel="stylesheet">
+    @stack('head')
 </head>
 <body>
     <a class="skip-link" href="#main">Langsung ke isi halaman</a>
+
+    {{-- Loading saat pindah halaman: garis progres di atas, lalu kartu animasi bila lebih dari 450 ms --}}
+    <div class="page-progress" id="pageProgress" aria-hidden="true"></div>
+    <div class="page-loader" id="pageLoader" role="status" aria-live="polite" hidden>
+        <div class="page-loader__card">
+            @include('partials.loader', ['text' => 'Memuat halaman', 'id' => 'pageLoaderText'])
+        </div>
+    </div>
 
     <div class="app-shell">
         <aside class="sidebar" id="sidebar" aria-label="Menu utama">
@@ -104,22 +113,20 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        (function () {
-            var btn = document.getElementById('navToggle');
-            btn.addEventListener('click', function () {
-                var open = document.body.classList.toggle('nav-open');
-                btn.setAttribute('aria-expanded', open);
-            });
-            document.addEventListener('click', function (e) {
-                if (document.body.classList.contains('nav-open') && !e.target.closest('#sidebar') && !e.target.closest('#navToggle')) {
-                    document.body.classList.remove('nav-open');
-                    btn.setAttribute('aria-expanded', 'false');
-                }
-            });
-        })();
-    </script>
+    {{-- Modal konfirmasi bersama (dipakai lewat atribut data-confirm, lihat public/js/app.js) --}}
+    <dialog class="confirm" id="confirmDialog" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+        <form method="dialog" class="confirm__box">
+            <span class="confirm__icon" aria-hidden="true"><i class="bi bi-question-circle" id="confirmIcon"></i></span>
+            <h2 class="confirm__title" id="confirmTitle">Lanjutkan?</h2>
+            <p class="confirm__text" id="confirmText"></p>
+            <div class="confirm__actions">
+                <button type="submit" value="cancel" class="btn-soft" id="confirmCancel">Batal</button>
+                <button type="submit" value="ok" class="btn-danger" id="confirmOk">Hapus</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}" defer></script>
     @stack('scripts')
 </body>
 </html>

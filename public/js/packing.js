@@ -71,6 +71,45 @@
         planLink: $('#planLink'),
     };
 
+    /* ------------------------- Plotly (dimuat saat perlu) ------------------------- */
+    // Bundel gl3d hanya berisi jenis grafik 3D (scatter3d, mesh3d, ...): sekitar 1,7 MB, bukan 4,5 MB bundel penuh.
+    // Tidak dipasang sebagai <script> di halaman, jadi halaman tampil dulu dan Plotly diunduh di latar belakang.
+    const PLOTLY_SRC = 'https://cdn.plot.ly/plotly-gl3d-2.35.2.min.js';
+    let plotlyPromise = null;
+    function loadPlotly() {
+        if (window.Plotly) return Promise.resolve(window.Plotly);
+        if (!plotlyPromise) {
+            plotlyPromise = new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = PLOTLY_SRC;
+                s.async = true;
+                s.charset = 'utf-8';
+                s.onload = () => (window.Plotly ? resolve(window.Plotly) : reject(new Error('Plotly tidak tersedia.')));
+                s.onerror = () => {
+                    plotlyPromise = null;   // boleh dicoba lagi
+                    s.remove();
+                    reject(new Error('Tampilan 3D gagal dimuat. Periksa koneksi internet, lalu pilih jalurnya lagi.'));
+                };
+                document.head.appendChild(s);
+            });
+        }
+        return plotlyPromise;
+    }
+    const prefetchPlotly = () => loadPlotly().catch(() => { /* dicoba lagi saat benar-benar dibutuhkan */ });
+
+    // Overlay animasi di area 3D
+    function plotBusy(text) {
+        const box = $('#plotLoader');
+        if (!box) return;
+        $('#plotLoaderText').textContent = text;
+        box.hidden = false;
+    }
+    function plotIdle() {
+        const box = $('#plotLoader');
+        if (box) box.hidden = true;
+    }
+    const pageLoader = () => (window.App && window.App.loader) || { show() {}, hide() {} };
+
     /* ----------------------------- Utilitas ----------------------------- */
 
     const nfCache = {};
@@ -136,6 +175,7 @@
             el.submit.disabled = !state.file;
 
             if (state.file) {
+                prefetchPlotly();   // hampir pasti dibutuhkan sebentar lagi
                 el.fileName.textContent = state.file.name;
                 el.fileHint.textContent = `Ukuran ${num(state.file.size / 1024, 0)} KB. Klik untuk mengganti file.`;
                 el.submitHint.textContent = 'Siap diproses.';
@@ -177,6 +217,7 @@
             el.results.hidden = true;
             if (el.empty) el.empty.hidden = false;
             setBusy(true);
+            pageLoader().show('Mengunggah dan memeriksa file', true);
             try {
                 const fd = new FormData();
                 fd.append('excel_file', state.file);
@@ -184,10 +225,12 @@
 
                 state.uploadId = up.upload_id;
                 showWarnings(up.warnings);
-                await loadRoutes(true);
+                pageLoader().show('Menghitung muatan tiap jalur', true);
+                await loadRoutes(true, () => pageLoader().hide());
             } catch (err) {
                 showError(err.message);
             } finally {
+                pageLoader().hide();
                 setBusy(false);
             }
         });
@@ -205,7 +248,7 @@
 
     /* ------------------------------ Kartu jalur -------------------------- */
 
-    async function loadRoutes(scroll = false) {
+    async function loadRoutes(scroll = false, onShown = null) {
         const data = await request(`/riwayat/${state.uploadId}/jalur`);
         state.routes = data.routes;
         state.overall = data.overall;
@@ -214,6 +257,8 @@
         el.results.hidden = false;
         renderBatchBanner();
         renderRouteGrid();
+        el.routeGrid.setAttribute('aria-busy', 'false');
+        if (onShown) onShown();
 
         // Pertahankan jalur terpilih bila masih ada, jika tidak pilih jalur pertama yang punya muatan
         let key = state.routeKey;
@@ -326,6 +371,7 @@
     async function optimize(scroll = false) {
         const seq = ++state.seq;
         el.routeDetail.classList.add('is-loading');
+        if (state.mode === 'tetris') plotBusy('Menyusun karton di truk');
         try {
             const data = await request('/packing/optimize', {
                 method: 'POST',
@@ -346,7 +392,7 @@
                 el.results.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
             }
         } catch (err) {
-            if (seq === state.seq) showError(err.message);
+            if (seq === state.seq) { showError(err.message); plotIdle(); }
         } finally {
             if (seq === state.seq) el.routeDetail.classList.remove('is-loading');
         }
@@ -358,7 +404,7 @@
         renderStats(data);
         renderDealers(data.items);
         renderUnloaded(data.unloaded);
-        render3d(data);
+        render3d(data).catch((err) => { plotIdle(); showError(err.message); });
     }
 
     function renderBanner(data) {
@@ -677,7 +723,7 @@
         };
     }
 
-    function render3d(data) {
+    async function render3d(data) {
         const isRatio = data.mode === 'ratio';
         const small = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
         const lazy = !isRatio && !state.force3d && (small || data.items.length > LAZY_3D_CARTONS);
@@ -689,7 +735,7 @@
             lazyNote.hidden = !lazy;
             $('#lazyCount').textContent = num(data.items.length, 0);
         }
-        if (isRatio || lazy) return;
+        if (isRatio || lazy) { plotIdle(); return; }
 
         dealerIndex = new Map();
         Array.from(new Set(data.items.map((i) => i.customer_code || ''))).sort().forEach((c) => dealerColor(c));
@@ -697,13 +743,30 @@
         renderLegend(data.items);
         hideTip();
         renderItemPanel();
-        Plotly.react('plot', buildTraces(data), plotLayout(), PLOT_CONFIG);
+
+        const seq = state.seq;
+        plotBusy(window.Plotly ? 'Menggambar susunan 3D' : 'Memuat tampilan 3D');
+        try {
+            await loadPlotly();
+        } catch (err) {
+            plotIdle();
+            showError(err.message);
+            return;
+        }
+        if (seq !== state.seq || state.data !== data) return;   // sudah ada hasil yang lebih baru
+
+        plotBusy('Menggambar susunan 3D');
+        // Beri browser satu frame untuk menampilkan animasi sebelum menggambar (menggambar bisa berat)
+        await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+        if (seq !== state.seq || state.data !== data) return;
+        await Plotly.react('plot', buildTraces(data), plotLayout(), PLOT_CONFIG);
         state.plotDrawn = true;
         bindPlotGuards();
+        plotIdle();
     }
 
     function applyCamera() {
-        if (state.data && state.data.mode === 'tetris') {
+        if (state.plotDrawn && state.data && state.data.mode === 'tetris') {
             Plotly.relayout('plot', { 'scene.camera': state.cam });
         }
     }
@@ -761,14 +824,17 @@
     }
 
     const lazyBtn = $('#lazyBtn');
-    if (lazyBtn) lazyBtn.addEventListener('click', () => { state.force3d = true; if (state.data) render3d(state.data); });
+    if (lazyBtn) lazyBtn.addEventListener('click', () => {
+        state.force3d = true;
+        if (state.data) render3d(state.data).catch((err) => { plotIdle(); showError(err.message); });
+    });
 
     const clearBtn = $('#itemClear');
     if (clearBtn) clearBtn.addEventListener('click', () => selectItem(null));
 
-    // Grafik di tab tersembunyi tidak punya lebar; sesuaikan saat tab dibuka
-    document.addEventListener('shown.bs.tab', (e) => {
-        if (e.target.id === 'tab3d' && state.data && state.data.mode === 'tetris') {
+    // Grafik di tab tersembunyi tidak punya lebar; sesuaikan saat tab dibuka (peristiwa dari public/js/app.js)
+    document.addEventListener('tab:shown', (e) => {
+        if (e.detail.tab.id === 'tab3d' && state.plotDrawn && state.data && state.data.mode === 'tetris') {
             Plotly.Plots.resize('plot');
         }
     });
@@ -776,6 +842,7 @@
     // Detail kloter: kartu jalur dimuat otomatis dari data yang tersimpan
     if (el.results.dataset.uploadId) {
         state.uploadId = Number(el.results.dataset.uploadId);
+        prefetchPlotly();   // paralel dengan memuat data jalur
         loadRoutes().catch((err) => showError(err.message));
     }
 })();

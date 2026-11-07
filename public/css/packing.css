@@ -195,7 +195,27 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 .kpi--warn .kpi__value { color: var(--warn); }
 
 /* ---------- Grafik dashboard ---------- */
-.chart { width: 100%; height: 300px; }
+.chart { position: relative; width: 100%; height: 300px; }
+.chart svg { display: block; overflow: visible; }
+.chart__grid { stroke: var(--line); stroke-width: 1; }
+.chart__tick { fill: var(--text-2); font-family: var(--mono); font-size: 11px; }
+.chart__line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.45)); transition: stroke-dashoffset 1.2s cubic-bezier(0.65, 0, 0.35, 1); }
+.chart__area { transition: opacity 0.9s ease 0.3s; }
+.chart.is-animating .chart__area, .chart.is-animating .chart__dot { opacity: 0; }
+.chart__dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; transition: opacity 0.4s ease 0.9s; }
+.chart__dot.is-last { filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.8)); }
+.chart__guide { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart__focus { fill: var(--bg); stroke: var(--accent); stroke-width: 2.5; }
+.chart__hit { cursor: crosshair; touch-action: pan-y; }
+.chart__tip {
+    position: absolute; left: 0; top: 0; pointer-events: none; z-index: 2;
+    display: flex; flex-direction: column; gap: 2px; min-width: 140px;
+    background: var(--surface-2); border: 1px solid var(--accent-line); border-radius: var(--radius-sm);
+    padding: 8px 12px; font-size: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.chart__tip b { font-weight: 600; color: var(--text); }
+.chart__tip span { font-family: var(--mono); font-weight: 700; font-size: 16px; color: var(--accent); }
+.chart__tip small { color: var(--text-2); }
 .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--text-2); font-size: 13px; }
 .chart-legend b { color: var(--text); font-family: var(--mono); font-weight: 600; }
 
@@ -450,7 +470,8 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 
 .spin { width: 16px; height: 16px; border: 2px solid rgba(0, 22, 26, 0.35); border-top-color: var(--accent-ink); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.is-loading { opacity: 0.5; pointer-events: none; transition: opacity 0.2s; }
+.is-loading { pointer-events: none; }
+.is-loading .status-banner, .is-loading .meter-grid, .is-loading .stat-grid, .is-loading .table-wrap { opacity: 0.45; transition: opacity 0.2s; }
 
 /* ---------- Penjadwalan ---------- */
 .moq-ok { color: var(--ok); font-weight: 600; }
@@ -519,6 +540,126 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 }
 .item-tip em { color: var(--text-2); }
 
+/* ---------- Loading: animasi truk diisi karton ---------- */
+.loader { position: relative; display: inline-block; width: 88px; height: 64px; flex: none; }
+.loader__truck {
+    position: absolute; left: 8px; right: 8px; bottom: 16px; height: 34px;
+    border: 2px solid var(--accent); border-top: 0; border-radius: 0 0 6px 6px;
+    box-shadow: 0 6px 16px -6px rgba(0, 229, 255, 0.55);
+}
+/* roda */
+.loader__truck::before, .loader__truck::after {
+    content: ""; position: absolute; bottom: -10px; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--bg); border: 2px solid var(--accent);
+}
+.loader__truck::before { left: 6px; }
+.loader__truck::after { right: 6px; }
+.loader__box {
+    position: absolute; bottom: 2px; width: 20px; height: 16px; border-radius: 3px;
+    background: var(--accent); opacity: 0; animation: loader-drop 1.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+.loader__box:nth-child(1) { left: 3px; }
+.loader__box:nth-child(2) { left: 25px; background: var(--ok); animation-delay: 0.2s; }
+.loader__box:nth-child(3) { left: 13px; bottom: 20px; width: 22px; background: var(--warn); animation-delay: 0.4s; }
+.loader__road { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; border-radius: 1px; }
+.loader__road::before {
+    content: ""; position: absolute; inset: 0; width: 200%;
+    background: repeating-linear-gradient(90deg, var(--line-strong) 0 10px, transparent 10px 18px);
+    animation: loader-road 0.6s linear infinite;
+}
+.loader__text { display: block; margin-top: 12px; color: var(--text); font-weight: 500; font-size: 14px; }
+.loader__text::after { content: ""; display: inline-block; width: 1.2em; text-align: left; animation: loader-dots 1.2s steps(4, end) infinite; }
+@keyframes loader-drop {
+    0% { transform: translateY(-34px); opacity: 0; }
+    18% { transform: translateY(0); opacity: 1; }
+    24% { transform: translateY(-3px); }
+    30%, 78% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(0); opacity: 0; }
+}
+@keyframes loader-road { to { transform: translateX(-18px); } }
+@keyframes loader-dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+
+/* Garis progres di paling atas saat pindah halaman */
+.page-progress {
+    position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 200; opacity: 0;
+    background: linear-gradient(90deg, var(--ok-area), var(--accent));
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.7); pointer-events: none;
+}
+.page-progress.is-active { opacity: 1; animation: progress-run 8s cubic-bezier(0.1, 0.7, 0.2, 1) forwards; }
+.page-progress.is-done { width: 100% !important; animation: none; opacity: 0; transition: width 0.2s ease, opacity 0.3s ease 0.15s; }
+@keyframes progress-run { 0% { width: 0; } 20% { width: 45%; } 100% { width: 92%; } }
+
+/* Kartu loading di tengah layar (muncul bila halaman lebih dari 450 ms) */
+.page-loader {
+    position: fixed; inset: 0; z-index: 150; display: grid; place-items: center;
+    background: rgba(10, 10, 10, 0.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    opacity: 0; transition: opacity 0.2s ease;
+}
+.page-loader[hidden] { display: none; }
+.page-loader.is-visible { opacity: 1; }
+.page-loader__card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card);
+    padding: 24px 32px; text-align: center; min-width: 240px; box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+/* Overlay di area 3D */
+.plot-loader {
+    position: absolute; inset: 1px; z-index: 4; border-radius: 12px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    background: rgba(23, 23, 23, 0.82); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+    animation: fade-in 0.2s ease;
+}
+.plot-loader[hidden] { display: none; }
+@keyframes fade-in { from { opacity: 0; } }
+
+/* Tombol yang sedang mengirim formulir */
+.is-busy { position: relative; color: transparent !important; pointer-events: none; }
+.is-busy > * { visibility: hidden; }
+.is-busy::after {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px;
+    border-radius: 50%; border: 2px solid currentColor; border-color: var(--text-2) var(--text-2) var(--text-2) transparent;
+    animation: spin 0.7s linear infinite;
+}
+.btn-cta.is-busy::after { border-color: var(--accent-ink) var(--accent-ink) var(--accent-ink) transparent; }
+
+/* Kerangka kartu jalur selagi data dimuat */
+.route-card.is-skeleton { cursor: default; gap: 10px; border-top-color: var(--line-strong); pointer-events: none; }
+.skel {
+    display: block; height: 12px; border-radius: 6px; width: 80%;
+    background: linear-gradient(90deg, var(--surface-2) 0%, #303032 50%, var(--surface-2) 100%);
+    background-size: 200% 100%; animation: shimmer 1.3s ease-in-out infinite;
+}
+.skel--title { height: 16px; width: 45%; }
+.skel--short { width: 55%; }
+.skel--bar { height: 6px; width: 100%; margin-top: 8px; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ---------- Modal konfirmasi (<dialog>) ---------- */
+.btn-danger {
+    background: var(--danger); border: 1px solid var(--danger); color: #fff; font-weight: 600; font-size: 14px;
+    height: 40px; padding: 0 16px; border-radius: var(--radius); white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: background 0.15s, box-shadow 0.15s;
+}
+.btn-danger:hover { background: #FF6259; box-shadow: 0 0 20px rgba(255, 69, 58, 0.35); }
+.confirm {
+    border: 1px solid var(--line); border-radius: 20px; padding: 0; width: min(440px, calc(100vw - 32px));
+    background: var(--surface); color: var(--text); box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+}
+.confirm::backdrop { background: rgba(5, 5, 5, 0.65); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.confirm[open] { animation: confirm-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+.confirm[open]::backdrop { animation: fade-in 0.2s ease; }
+@keyframes confirm-in { from { opacity: 0; transform: translateY(12px) scale(0.96); } }
+.confirm__box { padding: 24px; display: flex; flex-direction: column; align-items: flex-start; }
+.confirm__icon {
+    width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; margin-bottom: 16px;
+    background: var(--danger-soft); color: var(--danger); box-shadow: 0 0 0 6px rgba(255, 69, 58, 0.06);
+}
+.confirm[data-variant="warn"] .confirm__icon { background: var(--warn-soft); color: var(--warn); box-shadow: 0 0 0 6px rgba(255, 214, 10, 0.06); }
+.confirm[data-variant="info"] .confirm__icon { background: var(--accent-soft); color: var(--accent); box-shadow: 0 0 0 6px rgba(0, 229, 255, 0.06); }
+.confirm__title { font-size: 18px; font-weight: 600; margin: 0 0 8px; }
+.confirm__text { color: var(--text-2); margin: 0 0 24px; font-size: 14px; }
+.confirm__actions { display: flex; gap: 8px; justify-content: flex-end; width: 100%; flex-wrap: wrap; }
+
 /* ---------- Layar sempit ---------- */
 @media (max-width: 991px) {
     .app-shell { grid-template-columns: 1fr; }
@@ -542,6 +683,8 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 
 @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
+    .loader__box { opacity: 1; }
+    .page-progress.is-active { width: 70%; }
 }
 
 /* ---------- Cetak: kembali ke kertas putih ---------- */
@@ -555,7 +698,7 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
     }
     html { color-scheme: light; }
     body { background: #fff; color: #000; }
-    .sidebar, .topbar__toggle, .topbar__actions, .skip-link { display: none !important; }
+    .sidebar, .topbar__toggle, .topbar__actions, .skip-link, .page-progress, .page-loader, .confirm { display: none !important; }
     .app-shell { display: block; }
     .content { padding: 0; }
     .topbar { position: static; border: 0; background: #fff; backdrop-filter: none; padding: 0 0 12px; min-height: 0; }
