@@ -7,6 +7,7 @@ use App\Models\Dealer;
 use App\Models\RouteSetting;
 use App\Models\Vehicle;
 use App\Services\RouteApplier;
+use App\Services\RouteLoadService;
 use App\Services\RouteResolver;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,7 +18,7 @@ use Illuminate\Validation\Rule;
  */
 class AreaController extends Controller
 {
-    public function index(RouteResolver $routes)
+    public function index(RouteResolver $routes, RouteLoadService $loads)
     {
         Dealer::syncFromBoxes();
 
@@ -35,6 +36,7 @@ class AreaController extends Controller
 
         return view('areas.index', [
             'routeSettings' => RouteSetting::ensureAll(),
+            'routeDefaults' => collect(range(1, 8))->mapWithKeys(fn ($n) => [$n => $loads->defaultVehicleFor($n)?->name]),
             'vehicles' => Vehicle::orderBy('id')->get(),
             'areas' => $areas,
             'unknown' => $unknown,

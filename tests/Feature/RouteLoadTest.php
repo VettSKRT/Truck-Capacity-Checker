@@ -76,6 +76,57 @@ class RouteLoadTest extends TestCase
         $this->assertSame('ready', $routes[1]['state']);
     }
 
+    public function test_last_routes_use_the_big_truck_by_default_and_can_be_overridden(): void
+    {
+        $id = $this->uploadSample();   // Jalur 8 (Same Day) ada di sample
+
+        $routes = $this->routes($id);
+        $this->assertSame('WING_BOX', $routes[8]['vehicle']['code']);      // jalur akhir: truk besar
+        $this->assertSame('CDD', $routes[5]['vehicle']['code']);           // jalur biasa: truk kecil
+
+        $this->postJson('/packing/optimize', ['upload_id' => $id, 'route' => '8'])
+            ->assertOk()->assertJsonPath('vehicle.code', 'WING_BOX');
+
+        $this->get('/pengaturan/area')->assertOk()->assertSee('Default (Wing Box', false)->assertSee('Default (CDD', false);
+
+        // Truk jalur 8 boleh diganti sendiri
+        $cdd = Vehicle::where('code', 'CDD')->value('id');
+        $this->put('/pengaturan/jalur', ['routes' => [8 => ['name' => 'Same Day', 'vehicle_id' => $cdd]]])->assertRedirect();
+        $this->assertSame('CDD', $this->routes($id)[8]['vehicle']['code']);
+    }
+
+    public function test_optimized_items_carry_the_details_shown_when_a_carton_is_clicked(): void
+    {
+        $header = "Cargo Destination,Customer Code,Customer Name,Part Number,Qty,Status,Service Type\n";
+        // SMP-0001: 20 pcs/box -> qty 45 = 2 karton unit (20 pcs) + 1 receh (5 pcs)
+        $file = UploadedFile::fake()->createWithContent('o.csv', $header . "Jakarta,SA38,Dealer Jakarta,SMP-0001,45,4,same_day\n");
+        $id = $this->postJson('/upload', ['excel_file' => $file])->assertOk()->json('upload_id');
+
+        $items = collect($this->postJson('/packing/optimize', ['upload_id' => $id, 'route' => '1'])->assertOk()->json('items'));   // SA38 bukan dealer Same Day terpilih, jadi Jalur 1
+
+        $this->assertCount(3, $items);
+        $unit = $items->firstWhere('packing_type', 'unit');
+        $this->assertSame('SMP-0001', $unit['part_number']);
+        $this->assertSame('Filter Oli', $unit['part_name']);
+        $this->assertSame('G16 04 1 01', $unit['location']);
+        $this->assertSame(2, $unit['carton_no']);
+        $this->assertSame(20, $unit['qty']);                                // isi satu karton unit
+        $this->assertSame(5, $items->firstWhere('packing_type', 'receh')['qty']);   // isi karton receh
+        $this->assertSame('same_day', $unit['service_type']);
+        $this->assertSame('Dealer Jakarta', $unit['customer_name']);
+        $this->assertEqualsWithDelta(5.0, $unit['weight_kg'], 1e-6);         // 20 pcs * 0,25 kg
+    }
+
+    public function test_default_laravel_tables_that_this_app_does_not_use_are_not_created(): void
+    {
+        foreach (['users', 'password_reset_tokens', 'sessions', 'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs'] as $table) {
+            $this->assertFalse(\Illuminate\Support\Facades\Schema::hasTable($table), "Tabel {$table} tidak boleh dibuat");
+        }
+        foreach (['uploads', 'boxes', 'vehicles', 'cartons', 'products', 'dealers', 'shipments', 'areas', 'route_settings'] as $table) {
+            $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable($table), "Tabel {$table} harus ada");
+        }
+    }
+
     public function test_route_settings_update_validates_and_stores_names(): void
     {
         $this->put('/pengaturan/jalur', ['routes' => [2 => ['name' => 'Jawa Tengah dan DIY', 'vehicle_id' => 999999]]])

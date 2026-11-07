@@ -33,7 +33,7 @@
                         <td><input type="text" class="form-control" name="routes[{{ $rs->route }}][name]" value="{{ $rs->name }}" maxlength="60" placeholder="mis. Jabodetabek" aria-label="Tujuan jalur {{ $rs->route }}"></td>
                         <td>
                             <select class="form-select" name="routes[{{ $rs->route }}][vehicle_id]" aria-label="Truk default jalur {{ $rs->route }}">
-                                <option value="">Default ({{ config('logistics.default_vehicle') }})</option>
+                                <option value="">Default ({{ $routeDefaults[$rs->route] ?? config('logistics.default_vehicle') }})</option>
                                 @foreach ($vehicles as $v)
                                     <option value="{{ $v->id }}" @selected($rs->vehicle_id === $v->id)>{{ $v->name }} ({{ number_format($v->volume_m3, 2, ',', '.') }} m³, {{ number_format($v->max_payload_kg, 0, ',', '.') }} kg)</option>
                                 @endforeach

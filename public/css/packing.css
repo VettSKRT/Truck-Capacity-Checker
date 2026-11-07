@@ -400,3 +400,8 @@ a { color: var(--blue-700); }
     .btn-cta, .btn-soft { display: none !important; }
     .table-clean th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ---------- Isi karton terpilih (klik di 3D) ---------- */
+.item-panel { margin-top: 0.8rem; border: 1px solid var(--line); border-left: 4px solid var(--red-600); border-radius: var(--radius); padding: 0.7rem 0.9rem; background: #fff; }
+.item-panel__head { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; color: var(--blue-900); }
+.item-panel .kv { grid-template-columns: max-content 1fr; gap: 0.25rem 1.2rem; }

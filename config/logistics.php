@@ -14,8 +14,12 @@
 
 return [
 
-    // Kendaraan default saat upload tidak menyebutkan kendaraan (kode di tabel vehicles).
+    // Truk default untuk jalur kecil (kode di tabel vehicles). Truk putih sekitar 16 m3.
     'default_vehicle' => env('LOGISTICS_DEFAULT_VEHICLE', 'CDD'),
+
+    // Jalur akhir memakai truk besar. Hanya default: tiap jalur bisa diatur sendiri di Pengaturan.
+    'big_truck_routes' => [7, 8],
+    'big_vehicle' => env('LOGISTICS_BIG_VEHICLE', 'WING_BOX'),
 
     // Batas rasio (volume ATAU berat, mana yang lebih besar) agar muatan dianggap siap kirim.
     'ready_ratio' => 0.8,

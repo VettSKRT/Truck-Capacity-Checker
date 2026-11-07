@@ -55,7 +55,7 @@ class PackingController extends Controller
             return response()->json(['success' => false, 'message' => 'Data kendaraan belum ada. Jalankan: php artisan db:seed'], 422);
         }
 
-        $query = Box::where('upload_id', $upload->id)->orderBy('id');
+        $query = Box::with(['product', 'carton'])->where('upload_id', $upload->id)->orderBy('id');
         if ($routeKey === 'none') {
             $query->whereNull('route');
         } elseif ($routeNumber !== null) {
@@ -125,6 +125,11 @@ class PackingController extends Controller
         return [
             'id' => $u['id'],
             'part_number' => $u['part_number'] ?? null,
+            'part_name' => $u['part_name'] ?? null,
+            'location' => $u['location'] ?? null,
+            'carton_no' => $u['carton_no'] ?? null,
+            'qty' => $u['qty'] ?? null,
+            'service_type' => $u['service_type'] ?? null,
             'customer_code' => $u['customer_code'] ?? null,
             'customer_name' => $u['customer_name'] ?? null,
             'cargo_destination' => $u['cargo_destination'] ?? null,

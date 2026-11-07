@@ -105,7 +105,14 @@
                         </div>
                         <div class="legend" id="legend" aria-label="Keterangan warna dealer"></div>
                         <div id="plot" role="img" aria-label="Susunan karton di dalam truk"></div>
-                        <p class="pane-note">Geser dengan mouse untuk memutar. Untuk memperbesar, pakai tombol Perbesar atau tahan Ctrl sambil menggulir. Setiap warna adalah satu dealer.</p>
+                        <p class="pane-note"><strong>Klik sebuah karton</strong> untuk melihat isinya. Geser dengan mouse untuk memutar. Untuk memperbesar, pakai tombol Perbesar atau tahan Ctrl sambil menggulir. Setiap warna adalah satu dealer.</p>
+                        <div class="item-panel" id="itemPanel" hidden>
+                            <div class="item-panel__head">
+                                <strong><i class="bi bi-box-seam" aria-hidden="true"></i> Karton terpilih</strong>
+                                <button type="button" class="btn-soft btn-soft--sm" id="itemClear">Lepas pilihan</button>
+                            </div>
+                            <dl class="kv" id="itemBody"></dl>
+                        </div>
                     </div>
                     <div class="plot-empty" id="ratioNote" hidden>
                         <i class="bi bi-info-circle" aria-hidden="true"></i>

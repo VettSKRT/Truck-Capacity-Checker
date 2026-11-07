@@ -12,6 +12,7 @@ Aplikasi Laravel untuk mengecek kesiapan muatan truk di gudang, dengan tampilan 
 - Jalur 1-7 ditentukan dari **kode area** dealer (`SA` pada `SA38`). Jalur 8 untuk dealer **Same Day** terpilih.
 - Nama tujuan dan **truk default tiap jalur** diatur di menu Pengaturan (Area dan Jalur). Truk bisa diganti sementara per jalur saat melihat hasil.
 - **Rencana muat** per jalur bisa dicetak untuk sopir dan gudang.
+- Di tampilan 3D, **arahkan mouse ke sebuah karton** untuk melihat ringkasannya dan **klik** untuk detail lengkap: barang, dealer, isi karton (unit atau receh), nomor dan ukuran karton, berat, lokasi gudang, layanan, dan posisinya di truk. Karton terpilih disorot merah.
 
 ## Upload order (Excel/CSV)
 
@@ -66,6 +67,18 @@ Baris kosong, qty <= 0, status di luar 1-4, atau part yang tidak ada di master b
 - Dealer baru otomatis terdaftar saat file order diunggah.
 - File contoh `sample_data_kapal.csv` (dealer luar pulau dan Aceh) dan `DealerSeeder` (MOQ contoh) untuk mencoba.
 
+### Mencoba jadwal kapal dengan `sample_data_kapal.csv`
+
+File ini **diunggah seperti file order biasa**, tidak ada input manual per baris. Langkahnya:
+
+1. `php artisan migrate`, lalu `php artisan db:seed --class=DealerSeeder` (mengisi MOQ contoh; atau isi sendiri di menu Dealer dan MOQ).
+2. **Cek Kapasitas**: unggah `sample_data_kapal.csv`. Kloter baru berisi 4 dealer luar pulau dan Aceh, semuanya di Jalur 6.
+3. **Penjadwalan**, **Tambah Jadwal Kapal**: isi tanggal berangkat, tujuan, dan kapasitas (bawaan: kontainer Impor), lalu Simpan.
+4. Di tabel **Kloter menunggu jadwal kapal**, pilih jadwal tadi lalu klik **Tautkan**.
+5. Buka jadwalnya. MOQ per dealer: SJ10 memenuhi, SK05 **kurang 0,808 m3**, SL02 memenuhi, SJ21 **MOQ belum diatur**.
+
+Isi MOQ SJ21 (atau turunkan MOQ SK05) di menu Dealer dan MOQ, lalu buka jadwalnya lagi untuk melihat statusnya berubah.
+
 ## Kendaraan & aturan muatan
 
 | Kendaraan | Dimensi dalam (cm) | Volume | Muatan |
@@ -75,7 +88,7 @@ Baris kosong, qty <= 0, status di luar 1-4, atau part yang tidak ada di master b
 | Wing Box | 950 × 245 × 250 | 58,19 m³ | 17 ton |
 | Impor (kontainer 40' HC, estimasi) | 1203 × 235 × 269 | 76,05 m³ | 26 ton |
 
-- Kendaraan di atas dipilih sebagai **truk default per jalur** (bawaan: CDD, truk putih sekitar 16 m3).
+- Kendaraan di atas dipilih sebagai **truk default per jalur**: jalur kecil (1 sampai 6) memakai CDD (truk putih sekitar 16 m3), **jalur akhir (7 dan 8) memakai truk besar Wing Box**. Keduanya hanya default, bisa diubah per jalur di Pengaturan (`big_truck_routes` dan `big_vehicle` di `config/logistics.php`).
 - Karton **tidak boleh diputar** (P sejajar panjang kendaraan, L lebar, T tinggi).
 - Karton harus muat di truk jalurnya; yang tidak muat dilaporkan saat unggah dan ditandai `too_big`.
 
@@ -123,6 +136,8 @@ Format master barang: Part Number, Name, Weight kg/pcs, No Karton, Qty per Box, 
 6. Start server: `php artisan serve`
 
 ## Catatan
+
+- Tabel bawaan Laravel yang tidak dipakai aplikasi ini (`users`, `password_reset_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`) **sengaja tidak dibuat**. Sesi dan cache memakai file (`SESSION_DRIVER=file`, `CACHE_STORE=file`) dan antrean memakai `sync`. Bila database lama masih memilikinya, tabel itu aman dihapus setelah `.env` memakai driver di atas.
 
 - Jalur pada karton (`boxes.route`) adalah data turunan dari kode dealer dan pengaturan; dihitung ulang otomatis saat pengaturan berubah.
 - Kolom `uploads.status`, `ratio`, `volume_ratio`, `weight_ratio`, `binding_constraint`, dan `vehicle_id` adalah peninggalan model lama dan tidak dipakai.

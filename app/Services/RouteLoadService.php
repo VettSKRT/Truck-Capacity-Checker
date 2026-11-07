@@ -35,8 +35,6 @@ class RouteLoadService
 
         $ready = (int) config('logistics.cargo_ready_status', 4);
         $settings = RouteSetting::with('vehicle')->get()->keyBy('route');
-        $default = $this->defaultVehicle();
-
         $byStatus = Box::whereIn('upload_id', $ids)
             ->selectRaw('upload_id, route, status, sum(volume) as vol, sum(weight_kg) as wt, sum(box_count) as cartons')
             ->groupBy('upload_id', 'route', 'status')
@@ -77,7 +75,7 @@ class RouteLoadService
             foreach ($routes as $key => $cell) {
                 $number = $key === self::NO_ROUTE ? null : (int) $key;
                 $setting = $number !== null ? ($settings[$number] ?? null) : null;
-                $vehicle = $setting?->vehicle ?? $default;
+                $vehicle = $setting?->vehicle ?? $this->defaultVehicleFor($number);
                 $list[] = $this->present($number, $setting, $vehicle, $cell);
             }
             usort($list, fn ($a, $b) => ($a['route'] ?? 99) <=> ($b['route'] ?? 99));
@@ -100,13 +98,26 @@ class RouteLoadService
         return $this->summarizeMany([$uploadId])[$uploadId];
     }
 
-    /** Truk untuk sebuah jalur: pengaturan jalur, atau kendaraan default bila belum diatur. */
+    /** Truk untuk sebuah jalur: pengaturan jalur, atau truk default jalur itu bila belum diatur. */
     public function vehicleForRoute(?int $route): ?Vehicle
     {
         if ($route !== null) {
             $setting = RouteSetting::with('vehicle')->where('route', $route)->first();
             if ($setting?->vehicle) {
                 return $setting->vehicle;
+            }
+        }
+
+        return $this->defaultVehicleFor($route);
+    }
+
+    /** Truk default bila jalur belum punya truk sendiri: truk besar untuk jalur akhir, selain itu truk kecil. */
+    public function defaultVehicleFor(?int $route): ?Vehicle
+    {
+        if ($route !== null && in_array($route, (array) config('logistics.big_truck_routes', []), true)) {
+            $big = Vehicle::where('code', config('logistics.big_vehicle'))->first();
+            if ($big) {
+                return $big;
             }
         }
 

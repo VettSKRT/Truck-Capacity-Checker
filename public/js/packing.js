@@ -33,6 +33,7 @@
         top: { eye: { x: 0, y: -0.001, z: 2.8 }, up: { x: 0, y: 1, z: 0 } },
         end: { eye: { x: -2.4, y: 0, z: 0.35 }, up: { x: 0, y: 0, z: 1 } },
     };
+    const PLOT_CONFIG = { responsive: true, displaylogo: false, displayModeBar: false };
     const MAX_EDGE_BOXES = 2500; // di atas ini garis tepi karton dilewati agar tetap ringan
     // Indeks segitiga kubus (urutan titik: lihat buildTraces)
     const CUBE_I = [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2];
@@ -43,6 +44,7 @@
     const state = {
         uploadId: null, routes: [], overall: null, routeKey: null,
         mode: 'tetris', seq: 0, data: null, view: 'iso', file: null, cam: clone(CAMERAS.iso), plotBound: false,
+        meshMap: {}, selected: null, hovered: null, clickHandled: false,
     };
 
     const el = {
@@ -331,6 +333,7 @@
             });
             if (seq !== state.seq) return; // ada permintaan yang lebih baru
             state.data = data;
+            state.selected = null;
             render(data);
             if (scroll) {
                 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -490,7 +493,8 @@
         boxEdges(0, 0, 0, v.length, v.width, v.height, cx, cy, cz);
         traces.push({ type: 'scatter3d', mode: 'lines', x: cx, y: cy, z: cz, line: { color: '#00439B', width: 5 }, hoverinfo: 'skip', showlegend: false });
 
-        // Satu mesh per dealer
+        // Satu mesh per dealer. Setiap titik sudut membawa teks hover; 8 titik sudut = 1 karton.
+        const meshMap = {};
         const groups = new Map();
         data.items.forEach((it) => {
             const key = it.customer_code || '';
@@ -508,13 +512,17 @@
                 z.push(z0, z0, z0, z0, z1, z1, z1, z1);
                 for (let t = 0; t < 12; t++) { i.push(CUBE_I[t] + base); j.push(CUBE_J[t] + base); k.push(CUBE_K[t] + base); }
             });
+            const text = [];
+            list.forEach((it) => { const t = hoverText(it); for (let n = 0; n < 8; n++) text.push(t); });
+            meshMap[traces.length] = list;
             traces.push({
-                type: 'mesh3d', x, y, z, i, j, k,
+                type: 'mesh3d', x, y, z, i, j, k, text,
                 color: dealerColor(code), opacity: 1, flatshading: true,
                 lighting: { ambient: 0.72, diffuse: 0.65, specular: 0.05, roughness: 0.9 },
-                name: `${code || 'Tanpa dealer'}: ${list.length} karton`, hoverinfo: 'name', showlegend: false,
+                name: `${code || 'Tanpa dealer'}`, hoverinfo: 'text', showlegend: false,
             });
         });
+        state.meshMap = meshMap;
 
         // Garis tepi karton (satu trace) supaya batas antar karton terlihat
         if (data.items.length <= MAX_EDGE_BOXES) {
@@ -522,7 +530,67 @@
             data.items.forEach((it) => boxEdges(it.x, it.y, it.z, it.x + it.length, it.y + it.width, it.z + it.height, ex, ey, ez));
             traces.push({ type: 'scatter3d', mode: 'lines', x: ex, y: ey, z: ez, line: { color: 'rgba(22,32,51,0.55)', width: 1 }, hoverinfo: 'skip', showlegend: false });
         }
+
+        // Karton terpilih: disorot merah
+        const sel = state.selected;
+        if (sel) {
+            const g = 0.004; // sedikit lebih besar dari karton agar tidak berebut permukaan
+            const x0 = sel.x - g, x1 = sel.x + sel.length + g, y0 = sel.y - g, y1 = sel.y + sel.width + g, z0 = sel.z - g, z1 = sel.z + sel.height + g;
+            traces.push({
+                type: 'mesh3d', i: CUBE_I, j: CUBE_J, k: CUBE_K,
+                x: [x0, x0, x1, x1, x0, x0, x1, x1], y: [y0, y1, y1, y0, y0, y1, y1, y0], z: [z0, z0, z0, z0, z1, z1, z1, z1],
+                color: '#D4001A', opacity: 1, flatshading: true, hoverinfo: 'skip', showlegend: false,
+            });
+            const hx = [], hy = [], hz = [];
+            boxEdges(x0, y0, z0, x1, y1, z1, hx, hy, hz);
+            traces.push({ type: 'scatter3d', mode: 'lines', x: hx, y: hy, z: hz, line: { color: '#5C0010', width: 4 }, hoverinfo: 'skip', showlegend: false });
+        }
         return traces;
+    }
+
+    /* ----------------------- Isi karton (hover dan klik) ----------------------- */
+
+    const SERVICE_LABEL = { same_day: 'Same Day', one_day: 'One Day', emergency: 'Emergency' };
+    const mm = (m) => Math.round(m * 1000);
+
+    function hoverText(it) {
+        const kind = it.packing_type === 'receh' ? 'receh' : 'unit penuh';
+        return `<b>${esc(it.part_number || '-')}</b>${it.part_name ? ' ' + esc(it.part_name) : ''}<br>` +
+            `Dealer ${esc(it.customer_code || '-')}<br>${num(it.qty ?? 0, 0)} pcs (${kind}), ${num(it.weight_kg, 2)} kg<br><i>Klik untuk detail</i>`;
+    }
+
+    function renderItemPanel() {
+        const it = state.selected;
+        const panel = $('#itemPanel');
+        if (!panel) return;
+        panel.hidden = !it;
+        if (!it) return;
+
+        const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+        $('#itemBody').innerHTML = [
+            row('Barang', `<strong>${esc(it.part_number || '-')}</strong>${it.part_name ? ' ' + esc(it.part_name) : ''}`),
+            row('Dealer', `${esc(it.customer_code || '-')}${it.customer_name ? ' ' + esc(it.customer_name) : ''}${it.cargo_destination ? ', ' + esc(it.cargo_destination) : ''}`),
+            row('Isi karton', `${num(it.qty ?? 0, 0)} pcs, ${it.packing_type === 'receh' ? 'packing receh (sisa kurang dari isi box)' : 'packing unit (box penuh)'}`),
+            row('Karton', `No. ${esc(it.carton_no ?? '-')}, ${mm(it.length)} × ${mm(it.width)} × ${mm(it.height)} mm`),
+            row('Berat', `${num(it.weight_kg, 2)} kg`),
+            row('Volume', `${num(it.volume * 1000, 1)} liter`),
+            row('Lokasi gudang', esc(it.location || '-')),
+            row('Layanan', esc(SERVICE_LABEL[it.service_type] || it.service_type || '-')),
+            row('Posisi di truk', `${Math.round(it.x * 100)} cm dari depan, ${Math.round(it.y * 100)} cm dari sisi, tinggi ${Math.round(it.z * 100)} cm dari lantai`),
+        ].join('');
+    }
+
+    function selectItem(item) {
+        state.selected = item;
+        renderItemPanel();
+        if (state.data && state.data.mode === 'tetris') {
+            Plotly.react('plot', buildTraces(state.data), plotLayout(), PLOT_CONFIG);
+        }
+    }
+
+    function itemFromPoint(p) {
+        const list = p && state.meshMap[p.curveNumber];
+        return list ? list[Math.floor(p.pointNumber / 8)] || null : null;
     }
 
     function renderLegend(items) {
@@ -557,7 +625,8 @@
         Array.from(new Set(data.items.map((i) => i.customer_code || ''))).sort().forEach((c) => dealerColor(c));
 
         renderLegend(data.items);
-        Plotly.react('plot', buildTraces(data), plotLayout(), { responsive: true, displaylogo: false, displayModeBar: false });
+        renderItemPanel();
+        Plotly.react('plot', buildTraces(data), plotLayout(), PLOT_CONFIG);
         bindPlotGuards();
     }
 
@@ -592,8 +661,30 @@
         plot.on('plotly_relayout', (ev) => {
             if (ev && ev['scene.camera']) state.cam = clone(ev['scene.camera']);
         });
+
+        // Klik karton -> tampilkan isinya. Dua jalur agar andal: peristiwa klik Plotly, dan klik biasa
+        // pada karton yang sedang di-hover (dibedakan dari geser memutar dengan jarak gerak mouse).
+        plot.on('plotly_click', (ev) => {
+            const it = itemFromPoint(ev && ev.points && ev.points[0]);
+            if (it) { state.clickHandled = true; selectItem(it); }
+        });
+        plot.on('plotly_hover', (ev) => { state.hovered = itemFromPoint(ev && ev.points && ev.points[0]); });
+        plot.on('plotly_unhover', () => { state.hovered = null; });
+
+        let down = null;
+        plot.addEventListener('mousedown', (e) => { down = { x: e.clientX, y: e.clientY }; state.clickHandled = false; });
+        plot.addEventListener('mouseup', (e) => {
+            const moved = down ? Math.hypot(e.clientX - down.x, e.clientY - down.y) : 99;
+            down = null;
+            if (moved < 5) {
+                setTimeout(() => { if (!state.clickHandled && state.hovered) selectItem(state.hovered); }, 0);
+            }
+        });
         state.plotBound = true;
     }
+
+    const clearBtn = $('#itemClear');
+    if (clearBtn) clearBtn.addEventListener('click', () => selectItem(null));
 
     // Grafik di tab tersembunyi tidak punya lebar; sesuaikan saat tab dibuka
     document.addEventListener('shown.bs.tab', (e) => {

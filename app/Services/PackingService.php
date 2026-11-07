@@ -41,6 +41,7 @@ class PackingService
         foreach ($boxes as $box) {
             $count = max(1, (int) $box->box_count);
             $weight = $box->weight_kg / $count;
+            $qtyPerCarton = (int) round($box->qty / $count);   // pcs di dalam satu karton
 
             for ($i = 0; $i < $count; $i++) {
                 $units[] = [
@@ -53,6 +54,10 @@ class PackingService
                     'route' => $box->route,
                     'service_type' => $box->service_type,
                     'part_number' => $box->part_number,
+                    'part_name' => $box->product?->name,
+                    'location' => $box->product?->location,
+                    'carton_no' => $box->carton?->number,
+                    'qty' => $qtyPerCarton,
                     'customer_code' => $box->customer_code,
                     'customer_name' => $box->customer_name,
                     'cargo_destination' => $box->cargo_destination,
