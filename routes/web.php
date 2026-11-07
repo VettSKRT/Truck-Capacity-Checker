@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AreaController;
 use App\Http\Controllers\BatchController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DealerController;
@@ -38,6 +39,14 @@ Route::delete('/penjadwalan/{shipment}/kloter/{upload}', [ScheduleController::cl
 // Dealer dan MOQ
 Route::get('/dealer', [DealerController::class, 'index'])->name('dealers.index');
 Route::post('/dealer/moq', [DealerController::class, 'updateMoq'])->name('dealers.moq');
+Route::post('/dealer', [DealerController::class, 'store'])->name('dealers.store');
+
+// Pengaturan: kode area -> jalur dan wilayah
+Route::get('/pengaturan/area', [AreaController::class, 'index'])->name('areas.index');
+Route::post('/pengaturan/area', [AreaController::class, 'store'])->name('areas.store');
+Route::put('/pengaturan/area', [AreaController::class, 'update'])->name('areas.update');
+Route::post('/pengaturan/area/deteksi', [AreaController::class, 'detect'])->name('areas.detect');
+Route::delete('/pengaturan/area/{area}', [AreaController::class, 'destroy'])->name('areas.destroy');
 
 // Data referensi
 Route::get('/master-barang', [ProductController::class, 'index'])->name('products.index');

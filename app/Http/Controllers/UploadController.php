@@ -229,7 +229,7 @@ class UploadController extends Controller
         }
 
         if ($unmappedRoutes > 0) {
-            $warnings[] = "{$unmappedRoutes} baris belum punya jalur (isi mapping area di config/logistics.php).";
+            $warnings[] = "{$unmappedRoutes} baris belum punya jalur (atur di menu Pengaturan, Area dan Jalur).";
         }
         foreach (array_keys($tooBig) as $number) {
             $warnings[] = "Karton No. {$number} tidak muat di {$vehicle->code} (karton tidak boleh diputar).";

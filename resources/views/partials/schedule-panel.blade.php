@@ -9,7 +9,7 @@
     @if ($schedule['mode'] === 'belum_diatur' || $schedule['has_unknown'])
         <div class="notice notice--warn">
             <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
-            <div>Ada dealer yang kode areanya belum punya wilayah, jadi jenis jadwalnya belum bisa ditentukan. Isi pemetaan area ke wilayah di <code>config/logistics.php</code> (<code>area_regions</code>).</div>
+            <div>Ada dealer yang kode areanya belum punya wilayah, jadi jenis jadwalnya belum bisa ditentukan. Atur wilayahnya di <a href="{{ route('areas.index') }}">Pengaturan, Area dan Jalur</a>.</div>
         </div>
     @endif
 

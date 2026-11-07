@@ -6,6 +6,10 @@
 |--------------------------------------------------------------------------
 | Semua aturan bisnis yang bisa berubah dikumpulkan di sini supaya tidak
 | di-hardcode di controller / view.
+|
+| CATATAN: 'area_routes', 'area_regions', dan 'same_day_dealers' hanyalah DATA AWAL
+| yang disalin ke database saat migrasi. Setelah itu pengaturannya diubah lewat menu
+| Pengaturan (Area dan Jalur) dan Dealer dan MOQ, bukan lewat file ini.
 */
 
 return [

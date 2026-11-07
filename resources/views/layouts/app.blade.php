@@ -50,6 +50,11 @@
                 <a class="nav-item {{ request()->routeIs('reference.*') ? 'is-active' : '' }}" href="{{ route('reference.index') }}">
                     <i class="bi bi-rulers" aria-hidden="true"></i> Kendaraan dan Karton
                 </a>
+
+                <span class="sidebar__group">Pengaturan</span>
+                <a class="nav-item {{ request()->routeIs('areas.*') ? 'is-active' : '' }}" href="{{ route('areas.index') }}">
+                    <i class="bi bi-signpost-split" aria-hidden="true"></i> Area dan Jalur
+                </a>
             </nav>
 
             <div class="sidebar__foot">Hari ini: {{ now()->translatedFormat('d F Y') }}</div>

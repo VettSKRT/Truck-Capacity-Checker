@@ -52,9 +52,18 @@ Aplikasi Laravel untuk mengecek kapasitas truk dengan visualisasi 3D real-time.
 | Penjadwalan (`/penjadwalan`) | Jadwal kapal (manual), kloter menunggu jadwal, pengiriman harian |
 | Dealer dan MOQ (`/dealer`) | MOQ per dealer, wilayah, dan jenis jadwal |
 | Kendaraan dan Karton (`/referensi`) | Data acuan kendaraan dan 25 ukuran karton |
+| Area dan Jalur (`/pengaturan/area`) | Pengaturan kode area ke jalur dan wilayah |
 
 **Satu kali unggah file order = satu kloter** (tabel `uploads`), tersimpan permanen sehingga bisa dibuka ulang dan dihitung ulang
 dengan kendaraan lain tanpa unggah ulang. Status kloter: Siap dikirim (rasio >= 80%), Belum siap, atau Melebihi kapasitas (> 100%).
+
+## Pengaturan (tanpa edit file)
+
+- **Area dan Jalur** (`/pengaturan/area`): kode area (huruf di depan kode dealer, `SA` pada `SA38`) dipetakan ke **jalur 1-7** dan **wilayah**
+  (Jawa, Sumatra, Aceh, luar pulau). Kode area dari data dealer yang belum terdaftar terdeteksi otomatis.
+- **Dealer Same Day** (Jalur 8): centang di menu Dealer dan MOQ, atau tambah dealer manual.
+- Perubahan **langsung diterapkan ke semua kloter** (jalur adalah data turunan), jadi riwayat selalu mengikuti pengaturan terbaru.
+- Nilai awal berasal dari `config/logistics.php` dan disalin ke database saat `php artisan migrate`. Setelah itu ubah lewat menu, bukan file config.
 
 ## Penjadwalan
 

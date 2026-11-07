@@ -8,7 +8,7 @@ namespace App\Services;
  * Kode dealer berformat <KODE AREA><NOMOR DEALER>, mis. "SA38":
  * "SA" = kode area, "38" = kode dealer.
  *  - Jalur 8 : Same Day untuk dealer terpilih.
- *  - Jalur 1-7: berdasarkan kode area (mapping di config/logistics.php).
+ *  - Jalur 1-7: berdasarkan kode area (tabel areas, diatur di menu Pengaturan).
  */
 class RouteResolver
 {

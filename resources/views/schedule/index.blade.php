@@ -151,7 +151,7 @@
         <div>
             <strong>{{ $undecided->count() }} kloter belum bisa dijadwalkan</strong> karena wilayah dealernya belum diatur:
             {{ $undecided->map(fn ($r) => $r['upload']->code)->implode(', ') }}.
-            Isi <code>area_regions</code> di <code>config/logistics.php</code>.
+            Atur di <a href="{{ route('areas.index') }}">Pengaturan, Area dan Jalur</a>.
         </div>
     </div>
 @endif
