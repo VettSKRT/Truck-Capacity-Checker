@@ -11,7 +11,7 @@
     $routeLabel = fn ($n) => 'Jalur ' . $n . ($routeNames[$n] ?? null ? ' (' . $routeNames[$n] . ')' : '');
 @endphp
 
-<ul class="how-to mb-3">
+<ul class="how-to mb-4">
     <li><strong>Satu jalur = satu truk</strong>Setiap jalur adalah satu truk khusus ke satu tujuan (mis. Jalur 1 ke Jabodetabek). Muatan satu jalur tidak dicampur dengan jalur lain.</li>
     <li><strong>Kode area ke jalur</strong>Dealer masuk ke jalur menurut kode areanya (SA pada SA38). Wilayah menentukan pengiriman harian atau jadwal kapal.</li>
     <li><strong>Jalur 8 (Same Day)</strong>Khusus dealer terpilih. Atur di menu <a href="{{ route('dealers.index', ['moq' => 'sameday']) }}">Dealer dan MOQ</a>.</li>
@@ -21,7 +21,7 @@
       data-confirm="Nama tujuan dan truk default yang baru langsung dipakai untuk menghitung rasio isi di semua kloter, termasuk riwayat."
       data-confirm-title="Simpan pengaturan jalur?" data-confirm-ok="Simpan" data-confirm-variant="info" data-confirm-icon="bi-truck">
     @csrf @method('PUT')
-    <div class="panel__head p-3 pb-0 mb-2">
+    <div class="panel__head">
         <h2 class="panel__title">Jalur dan truk</h2>
         <span class="panel__hint">Nama tujuan dan truk default tiap jalur. Kesiapan kirim dinilai terhadap truk ini.</span>
     </div>
@@ -37,7 +37,7 @@
                             <select class="form-select" name="routes[{{ $rs->route }}][vehicle_id]" aria-label="Truk default jalur {{ $rs->route }}">
                                 <option value="">Default ({{ $routeDefaults[$rs->route] ?? config('logistics.default_vehicle') }})</option>
                                 @foreach ($vehicles as $v)
-                                    <option value="{{ $v->id }}" @selected($rs->vehicle_id === $v->id)>{{ $v->name }} ({{ number_format($v->volume_m3, 2, ',', '.') }} m³, {{ number_format($v->max_payload_kg, 0, ',', '.') }} kg)</option>
+                                    <option value="{{ $v->id }}" @selected($rs->vehicle_id === $v->id) data-label="{{ $v->name }}" data-hint="{{ number_format($v->volume_m3, 2, ',', '.') }} m³ · {{ number_format($v->max_payload_kg, 0, ',', '.') }} kg">{{ $v->name }} ({{ number_format($v->volume_m3, 2, ',', '.') }} m³, {{ number_format($v->max_payload_kg, 0, ',', '.') }} kg)</option>
                                 @endforeach
                             </select>
                         </td>
@@ -68,7 +68,7 @@
 @endif
 
 <section class="panel panel--flush">
-    <div class="panel__head p-3 pb-0 mb-2">
+    <div class="panel__head">
         <h2 class="panel__title">Daftar area ({{ $areas->count() }})</h2>
         <span class="panel__hint">Perubahan langsung diterapkan ke jalur di semua kloter, termasuk riwayat.</span>
     </div>
@@ -139,7 +139,7 @@
 
 <form method="POST" action="{{ route('areas.store') }}" class="panel">
     @csrf
-    <h2 class="panel__title mb-2">Tambah area</h2>
+    <h2 class="panel__title mb-3">Tambah area</h2>
     <div class="form-grid">
         <div>
             <label class="field-label" for="code">Kode area</label>

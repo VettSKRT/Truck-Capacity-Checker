@@ -13,7 +13,7 @@
         </div>
     @endif
 
-    <div class="row g-3">
+    <div class="row g-4">
         <div class="col-lg-7">
             <div class="table-wrap table-wrap--free">
                 <table class="table-clean">

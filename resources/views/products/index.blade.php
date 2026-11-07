@@ -7,10 +7,10 @@
 @section('content')
 @php $fmt = fn ($n, $d = 2) => number_format($n, $d, ',', '.'); @endphp
 
-<div class="row g-3 mb-1">
+<div class="row g-4 mb-4">
     <div class="col-lg-7">
         <form method="GET" action="{{ route('products.index') }}" class="panel h-100">
-            <div class="row g-2 align-items-end">
+            <div class="row g-3 align-items-end">
                 <div class="col-sm-6">
                     <label class="field-label" for="q">Cari</label>
                     <input type="search" class="form-control" id="q" name="q" value="{{ $q }}" placeholder="Part number atau nama">
@@ -98,7 +98,7 @@
             </table>
         </div>
         @if ($products->hasPages())
-            <div class="d-flex justify-content-between align-items-center p-3 border-top flex-wrap gap-2">
+            <div class="panel__foot">
                 <small class="text-muted">Menampilkan {{ $products->firstItem() }} sampai {{ $products->lastItem() }} dari {{ $products->total() }} barang</small>
                 {{ $products->links() }}
             </div>

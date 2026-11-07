@@ -8,7 +8,7 @@
 @php $fmt = fn ($n, $d = 2) => number_format($n, $d, ',', '.'); @endphp
 
 <form method="GET" action="{{ route('dealers.index') }}" class="panel">
-    <div class="row g-2 align-items-end">
+    <div class="row g-3 align-items-end">
         <div class="col-md-5">
             <label class="field-label" for="q">Cari</label>
             <input type="search" class="form-control" id="q" name="q" value="{{ $q }}" placeholder="Kode atau nama dealer">
@@ -30,8 +30,8 @@
 
 <form method="POST" action="{{ route('dealers.store') }}" class="panel">
     @csrf
-    <h2 class="panel__title mb-2">Tambah dealer</h2>
-    <div class="row g-2 align-items-end">
+    <h2 class="panel__title mb-3">Tambah dealer</h2>
+    <div class="row g-3 align-items-end">
         <div class="col-md-3">
             <label class="field-label" for="new_code">Kode dealer</label>
             <input type="text" class="form-control text-uppercase" id="new_code" name="code" value="{{ old('code') }}" placeholder="mis. SA38" maxlength="12" required>
@@ -41,14 +41,14 @@
             <input type="text" class="form-control" id="new_name" name="name" value="{{ old('name') }}" maxlength="120">
         </div>
         <div class="col-md-3">
-            <div class="form-check mb-2">
+            <div class="form-check form-check--field">
                 <input type="checkbox" class="form-check-input" id="new_same_day" name="same_day" value="1" @checked(old('same_day'))>
                 <label class="form-check-label" for="new_same_day">Dealer Same Day (Jalur 8)</label>
             </div>
         </div>
         <div class="col-md-2"><button class="btn-soft" type="submit"><i class="bi bi-plus-lg" aria-hidden="true"></i> Tambah</button></div>
     </div>
-    <p class="panel__hint mt-2 mb-0">Dealer juga muncul otomatis dari file order. Tambah manual untuk dealer yang belum pernah muncul, misalnya dealer Same Day.</p>
+    <p class="panel__hint mt-3 mb-0">Dealer juga muncul otomatis dari file order. Tambah manual untuk dealer yang belum pernah muncul, misalnya dealer Same Day.</p>
 </form>
 
 <section class="panel panel--flush">
@@ -98,7 +98,7 @@
             </div>
         </form>
         @if ($dealers->hasPages())
-            <div class="d-flex justify-content-between align-items-center p-3 border-top flex-wrap gap-2">
+            <div class="panel__foot">
                 <small class="text-muted">Dealer {{ $dealers->firstItem() }} sampai {{ $dealers->lastItem() }} dari {{ $dealers->total() }}. Simpan sebelum pindah halaman.</small>
                 {{ $dealers->links() }}
             </div>

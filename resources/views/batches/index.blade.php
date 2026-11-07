@@ -61,7 +61,7 @@
     @else
         @include('batches._table', ['batches' => $batches, 'summaries' => $summaries])
         @if ($batches->hasPages())
-            <div class="d-flex justify-content-between align-items-center p-3 border-top flex-wrap gap-2">
+            <div class="panel__foot">
                 <small class="text-muted">Menampilkan {{ $batches->firstItem() }} sampai {{ $batches->lastItem() }} dari {{ $batches->total() }} kloter</small>
                 {{ $batches->links() }}
             </div>

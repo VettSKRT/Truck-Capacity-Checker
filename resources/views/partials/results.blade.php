@@ -13,7 +13,7 @@
 
     {{-- Kartu jalur: pilih satu jalur untuk melihat truknya --}}
     <div>
-        <h2 class="panel__title mb-2">Jalur dalam kloter ini</h2>
+        <h2 class="panel__title mb-3">Jalur dalam kloter ini</h2>
         <div class="route-grid" id="routeGrid" aria-label="Daftar jalur" aria-busy="true">
             {{-- Kerangka sementara selagi data jalur dimuat --}}
             @for ($i = 0; $i < 4; $i++)
@@ -33,7 +33,7 @@
                     <span class="mode-switch__label">Truk:</span>
                     <select class="form-select" id="routeVehicle" aria-label="Truk untuk jalur ini">
                         @foreach ($__vehicles as $v)
-                            <option value="{{ $v->code }}">{{ $v->name }} ({{ number_format($v->volume_m3, 2, ',', '.') }} m³, {{ number_format($v->max_payload_kg, 0, ',', '.') }} kg)</option>
+                            <option value="{{ $v->code }}" data-label="{{ $v->name }}" data-hint="{{ number_format($v->volume_m3, 2, ',', '.') }} m³ · {{ number_format($v->max_payload_kg, 0, ',', '.') }} kg">{{ $v->name }} ({{ number_format($v->volume_m3, 2, ',', '.') }} m³, {{ number_format($v->max_payload_kg, 0, ',', '.') }} kg)</option>
                         @endforeach
                     </select>
                 </label>

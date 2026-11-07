@@ -34,7 +34,7 @@
 
 @foreach ($dealers as $d)
     <section class="panel panel--flush plan-dealer">
-        <div class="p-3 pb-2">
+        <div class="panel__head">
             <h2 class="panel__title">{{ $d['code'] }} <span class="text-muted fw-normal">{{ $d['name'] }}{{ $d['destination'] ? ', ' . $d['destination'] : '' }}</span></h2>
         </div>
 
@@ -65,11 +65,11 @@
                 </table>
             </div>
         @else
-            <p class="panel__hint px-3 pb-3 mb-0">Belum ada karton berstatus 4 (Cargo Ready) untuk dealer ini.</p>
+            <p class="panel__hint panel__body">Belum ada karton berstatus 4 (Cargo Ready) untuk dealer ini.</p>
         @endif
 
         @if ($d['pending']->isNotEmpty())
-            <p class="panel__hint px-3 py-2 mb-0 border-top">
+            <p class="panel__hint panel__foot">
                 Belum masuk muatan (status 1 sampai 3): {{ $d['pending']->map(fn ($b) => $b->part_number . ' x' . $b->box_count)->implode(', ') }}.
             </p>
         @endif

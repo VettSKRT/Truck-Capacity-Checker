@@ -29,7 +29,7 @@
             <select class="form-select" id="vehicle_id" name="vehicle_id">
                 <option value="">Belum ditentukan</option>
                 @foreach ($vehicles as $v)
-                    <option value="{{ $v->id }}" @selected((string) old('vehicle_id', $shipment->vehicle_id) === (string) $v->id)>
+                    <option value="{{ $v->id }}" @selected((string) old('vehicle_id', $shipment->vehicle_id) === (string) $v->id) data-label="{{ $v->name }}" data-hint="{{ number_format($v->volume_m3, 2, ',', '.') }} m³ · {{ number_format($v->max_payload_kg, 0, ',', '.') }} kg">
                         {{ $v->name }}: {{ number_format($v->volume_m3, 2, ',', '.') }} m³ / {{ number_format($v->max_payload_kg, 0, ',', '.') }} kg
                     </option>
                 @endforeach

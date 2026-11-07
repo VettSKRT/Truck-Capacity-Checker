@@ -8,7 +8,7 @@
 @php $fmt = fn ($n, $d = 2) => number_format($n, $d, ',', '.'); @endphp
 
 <section class="panel panel--flush">
-    <div class="p-3 pb-2"><h2 class="panel__title">Kendaraan</h2></div>
+    <div class="panel__head"><h2 class="panel__title">Kendaraan</h2></div>
     <div class="table-wrap table-wrap--free table-wrap--flush">
         <table class="table-clean">
             <thead>
@@ -38,7 +38,7 @@
 </section>
 
 <section class="panel panel--flush">
-    <div class="p-3 pb-2"><h2 class="panel__title">Ukuran karton ({{ $cartons->count() }} jenis)</h2></div>
+    <div class="panel__head"><h2 class="panel__title">Ukuran karton ({{ $cartons->count() }} jenis)</h2></div>
     <div class="table-wrap table-wrap--free table-wrap--flush">
         <table class="table-clean">
             <thead>

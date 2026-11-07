@@ -69,7 +69,8 @@
     --bs-tertiary-bg: var(--surface-2);
 }
 
-html { font-size: 14px; color-scheme: dark; }
+/* 1rem = 16px supaya utilitas Bootstrap (mb-2, g-3, p-3, ...) jatuh di kelipatan 8px; teks dasar tetap 14px di body */
+html { font-size: 16px; color-scheme: dark; }
 
 body {
     background: var(--bg);
@@ -172,6 +173,12 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 .panel--flush { padding: 0; overflow: hidden; }
 .panel__head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
 .panel--flush > .panel__head { padding: 20px 20px 0; }
+.panel__body { padding: 20px; }
+.panel__foot { display: flex; justify-content: space-between; align-items: center; gap: 8px 16px; flex-wrap: wrap; padding: 16px 20px; border-top: 1px solid var(--line); }
+p.panel__foot, p.panel__body { margin: 0; }
+/* Sel tabel pertama/terakhir sejajar dengan judul kartu (padding 20px) */
+.table-wrap--flush .table-clean th:first-child, .table-wrap--flush .table-clean td:first-child { padding-left: 20px; }
+.table-wrap--flush .table-clean th:last-child, .table-wrap--flush .table-clean td:last-child { padding-right: 20px; }
 .panel__title { font-size: 16px; font-weight: 600; color: var(--text); margin: 0; display: flex; align-items: center; gap: 8px; }
 .panel__title > .bi { color: var(--accent); }
 .panel__hint { color: var(--text-2); font-size: 14px; margin: 0; }
@@ -261,14 +268,58 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 /* ---------- Formulir ---------- */
 .form-control, .form-select {
     background-color: var(--surface-inset); color: var(--text);
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0));
     border-color: var(--line-strong); border-radius: var(--radius); font-size: 14px; min-height: 40px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
 }
+.form-control:hover:not(:focus):not(:disabled), .form-select:hover:not(:focus):not(:disabled) { border-color: #4A4A4E; }
 .form-control::placeholder { color: var(--text-3); }
-.form-control:focus, .form-select:focus { background-color: var(--surface-inset); color: var(--text); border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.18); }
+.form-control:focus, .form-select:focus {
+    background-color: var(--surface-inset); color: var(--text); border-color: var(--accent);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35), 0 0 0 3px rgba(0, 229, 255, 0.16), 0 0 18px rgba(0, 229, 255, 0.12);
+}
+textarea.form-control { min-height: 80px; resize: vertical; }
+
+/* Kolom cari: ikon kaca pembesar */
+input[type="search"].form-control {
+    padding-left: 38px;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2398989D' viewBox='0 0 16 16'%3e%3cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10'/%3e%3c/svg%3e"), linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0));
+    background-repeat: no-repeat; background-position: 14px center, 0 0; background-size: 15px, auto;
+}
+input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none; appearance: none; width: 16px; height: 16px; cursor: pointer; opacity: 0.6;
+    background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2398989D' viewBox='0 0 16 16'%3e%3cpath d='M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z'/%3e%3c/svg%3e") center / 16px no-repeat;
+}
+input[type="search"]::-webkit-search-cancel-button:hover { opacity: 1; }
+
+/* Angka: huruf monospace, tanpa tombol putar bawaan */
+input[type="number"].form-control { font-family: var(--mono); -moz-appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Pilih file: tombol di dalam kolom bergaya aksen */
+input[type="file"].form-control { padding: 0; line-height: 38px; color: var(--text-2); cursor: pointer; overflow: hidden; }
+input[type="file"].form-control::file-selector-button {
+    height: 38px; margin: 0 12px 0 0; padding: 0 16px; border: 0; border-right: 1px solid var(--line-strong);
+    background: var(--accent-soft); color: var(--accent); font: 600 13px var(--font); cursor: pointer; transition: background 0.15s;
+}
+input[type="file"].form-control:hover::file-selector-button { background: rgba(0, 229, 255, 0.2); }
 .form-control:disabled, .form-select:disabled { background-color: var(--surface-2); color: var(--text-3); }
-.form-check-input { background-color: var(--surface-inset); border-color: var(--line-strong); }
-.form-check-input:checked { background-color: var(--accent); border-color: var(--accent); }
+.form-check { display: flex; align-items: center; gap: 10px; padding-left: 0; min-height: 24px; }
+.form-check .form-check-input { float: none; margin: 0; flex: none; }
+.form-check-label { cursor: pointer; color: var(--text); }
+.form-check--field { min-height: 40px; }   /* sejajar dengan kolom input di baris yang sama */
+.form-check-input {
+    width: 20px; height: 20px; cursor: pointer;
+    background-color: var(--surface-inset); border: 1.5px solid #4A4A4E; border-radius: 6px;
+    transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+.form-check-input:hover:not(:checked) { border-color: var(--accent-line); }
+.form-check-input:active { transform: scale(0.92); }
+.form-check-input:checked { background-color: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px rgba(0, 229, 255, 0.35); animation: check-pop 0.2s ease; }
 .form-check-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.18); }
+.form-check-input:checked:focus { box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.18), 0 0 12px rgba(0, 229, 255, 0.35); }
+@keyframes check-pop { 50% { transform: scale(1.12); } }
 .form-check-input:checked[type=checkbox] {
     --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%2300161A' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
 }
@@ -353,7 +404,7 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 .status-banner.is-over { background: var(--danger-bg); border-color: var(--danger-line); border-left-color: var(--danger); }
 .status-banner.is-over .status-banner__icon, .status-banner.is-over .status-banner__title { color: var(--danger); }
 
-.meter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.meter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .meter-grid .panel { margin-bottom: 0; }
 .meter { margin: 0; }
 .meter__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 500; font-size: 13px; color: var(--text-2); }
@@ -660,6 +711,142 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 .confirm__text { color: var(--text-2); margin: 0 0 24px; font-size: 14px; }
 .confirm__actions { display: flex; gap: 8px; justify-content: flex-end; width: 100%; flex-wrap: wrap; }
 
+/* ---------- Dropdown dan pemilih tanggal kustom (public/js/controls.js) ---------- */
+.fx-native { position: absolute !important; left: 0; bottom: 0; width: 1px !important; height: 1px !important; min-width: 0 !important; min-height: 0 !important; padding: 0 !important; border: 0 !important; opacity: 0; pointer-events: none; }
+.fx-select, .fx-date { position: relative; width: 100%; min-width: 0; }
+.fx-select { container-type: inline-size; }
+/* Keterangan (mis. kapasitas truk) di tombol hanya bila lebar cukup; di menu selalu tampil */
+@container (max-width: 380px) { .fx-select__hint { display: none; } }
+
+.fx-select__trigger, .fx-date__trigger {
+    display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 0 12px 0 14px; text-align: left;
+    background: var(--surface-inset) linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+    border: 1px solid var(--line-strong); border-radius: var(--radius); color: var(--text); font: 500 14px var(--font);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35); cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+.fx-select__trigger:hover:not(:disabled), .fx-date__trigger:hover { border-color: #4A4A4E; background-color: #1B1B1B; }
+.fx-select__trigger:focus-visible, .fx-date__trigger:focus-visible, .is-open > .fx-select__trigger, .is-open > .fx-date__trigger {
+    outline: none; border-color: var(--accent);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35), 0 0 0 3px rgba(0, 229, 255, 0.16), 0 0 18px rgba(0, 229, 255, 0.12);
+}
+.fx-select__trigger:disabled { opacity: 0.5; cursor: not-allowed; }
+.fx-select__value, .fx-date__value { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-select__hint { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); font: 500 12px var(--mono); }
+.fx-select__hint:empty { display: none; }
+.is-placeholder .fx-select__value, .is-placeholder.fx-date__trigger .fx-date__value { color: var(--text-2); }
+.fx-select__chev { margin-left: auto; flex: none; font-size: 12px; color: var(--text-2); transition: transform 0.2s ease, color 0.15s; }
+.is-open .fx-select__chev { transform: rotate(180deg); color: var(--accent); }
+.fx-date__icon { color: var(--accent); font-size: 15px; flex: none; }
+.fx-date.has-value .fx-date__trigger { padding-right: 40px; }
+.fx-date__clear {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border-radius: 8px;
+    display: none; place-items: center; border: 0; background: transparent; color: var(--text-2); font-size: 12px; cursor: pointer;
+}
+.fx-date.has-value .fx-date__clear { display: grid; }
+.fx-date__clear:hover { background: var(--surface-2); color: var(--text); }
+.fx-select.is-invalid .fx-select__trigger, .fx-date.is-invalid .fx-date__trigger, .fx-date.is-missing .fx-date__trigger { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.15); }
+.fx-error { margin-top: 6px; color: var(--danger); font-size: 12px; }
+.fx-date ~ .invalid-feedback, .fx-date.is-invalid ~ .invalid-feedback { display: block; }
+
+/* Konteks khusus: dropdown kecil di baris tabel dan pemilih truk di detail jalur */
+.inline-form .fx-select { width: 240px; }
+.inline-form .fx-select__trigger { min-height: 32px; font-size: 13px; }
+.route-head__truck .fx-select { min-width: 400px; }
+.table-clean .fx-select__hint { display: none; }
+.table-clean .fx-select { min-width: 248px; }
+.text-uppercase::placeholder { text-transform: none; }
+
+/* Pilih file kustom (controls.js) */
+.fx-file {
+    position: relative; display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 6px 0 12px; cursor: pointer;
+    background: var(--surface-inset); border: 1px dashed var(--accent-line); border-radius: var(--radius);
+    transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+.fx-file:hover, .fx-file.is-over { border-color: var(--accent); background: var(--accent-soft); }
+.fx-file:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.16); }
+.fx-file > .bi { color: var(--accent); font-size: 16px; }
+.fx-file__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); font-size: 13px; }
+.fx-file.has-file { border-style: solid; border-color: var(--ok); background: var(--ok-soft); }
+.fx-file.has-file > .bi, .fx-file.has-file .fx-file__name { color: var(--ok); }
+.fx-file.has-file .fx-file__name { font-weight: 600; }
+.fx-file__btn { flex: none; padding: 4px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text); font-size: 12px; font-weight: 600; }
+.fx-file input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+/* Popover kaca gelap (menu dan kalender) */
+.fx-pop {
+    position: fixed; z-index: 120; overflow: auto; overscroll-behavior: contain;
+    background: linear-gradient(180deg, rgba(40, 40, 42, 0.92), rgba(28, 28, 30, 0.94));
+    -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 20px 48px rgba(0, 0, 0, 0.55), 0 0 32px rgba(0, 229, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    opacity: 0; transform: translateY(-6px) scale(0.98); transform-origin: top center;
+    transition: opacity 0.16s ease, transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+    scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
+}
+.fx-pop[data-side="top"] { transform: translateY(6px) scale(0.98); transform-origin: bottom center; }
+.fx-pop.is-visible { opacity: 1; transform: none; }
+
+.fx-menu { padding: 6px; max-width: min(440px, calc(100vw - 16px)); }
+.fx-menu__search {
+    position: sticky; top: -6px; margin: -6px -6px 6px; padding: 10px 12px; display: flex; align-items: center; gap: 8px;
+    background: rgba(32, 32, 34, 0.96); border-bottom: 1px solid var(--line); z-index: 1;
+}
+.fx-menu__search i { color: var(--text-2); font-size: 13px; }
+.fx-menu__search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--text); font: 14px var(--font); }
+.fx-menu__search input::placeholder { color: var(--text-3); }
+.fx-menu__list { display: flex; flex-direction: column; gap: 2px; outline: 0; }
+.fx-option {
+    position: relative; display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 14px; border-radius: 9px;
+    color: var(--text); cursor: pointer; font-size: 14px; user-select: none;
+}
+.fx-option.is-active { background: linear-gradient(90deg, rgba(0, 229, 255, 0.16), rgba(0, 229, 255, 0.05)); }
+.fx-option.is-active::before { content: ""; position: absolute; left: 4px; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.fx-option.is-selected .fx-option__label { color: var(--accent); font-weight: 600; }
+.fx-option.is-empty .fx-option__label { color: var(--text-2); }
+.fx-option.is-disabled { opacity: 0.4; cursor: not-allowed; }
+.fx-option__text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.fx-option__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-option__hint { color: var(--text-2); font: 500 12px var(--mono); margin-top: 1px; }
+.fx-option__check { color: var(--accent); font-size: 16px; opacity: 0; transform: scale(0.6); transition: opacity 0.15s, transform 0.15s; }
+.fx-option.is-selected .fx-option__check { opacity: 1; transform: none; }
+.fx-menu__empty { padding: 16px; text-align: center; color: var(--text-2); font-size: 13px; }
+
+/* Kalender */
+.fx-cal { padding: 14px; width: 296px; }
+.fx-cal__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.fx-cal__title { font-weight: 600; font-size: 15px; text-transform: capitalize; letter-spacing: -0.01em; }
+.fx-cal__nav {
+    width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; cursor: pointer;
+    background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); color: var(--text); font-size: 13px; transition: all 0.15s;
+}
+.fx-cal__nav:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.fx-cal__row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.fx-cal__dow { margin-bottom: 4px; }
+.fx-cal__dow span { text-align: center; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-3); padding: 4px 0; }
+.fx-cal__dow span.is-weekend { color: rgba(255, 69, 58, 0.6); }
+.fx-day {
+    position: relative; height: 36px; border-radius: 10px; border: 1px solid transparent; background: transparent;
+    color: var(--text); font: 500 13px var(--mono); cursor: pointer; transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.fx-day:hover:not(:disabled) { background: var(--surface-2); border-color: var(--line-strong); }
+.fx-day:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.fx-day.is-out { color: var(--text-3); }
+.fx-day.is-weekend:not(.is-selected):not(.is-out) { color: #FF8A82; }
+.fx-day.is-today:not(.is-selected) { border-color: var(--accent-line); color: var(--accent); }
+.fx-day.is-today:not(.is-selected)::after { content: ""; position: absolute; left: 50%; bottom: 4px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--accent); }
+.fx-day.is-selected {
+    background: linear-gradient(135deg, #00E5FF, #30D158); color: #00161A; font-weight: 700; border-color: transparent;
+    box-shadow: 0 4px 16px rgba(0, 229, 255, 0.35);
+}
+.fx-day:disabled { color: var(--text-3); opacity: 0.35; cursor: not-allowed; text-decoration: line-through; }
+.fx-cal__foot { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.fx-cal__link { background: none; border: 0; padding: 6px 10px; border-radius: 8px; color: var(--accent); font: 600 13px var(--font); cursor: pointer; }
+.fx-cal__link:hover:not(:disabled) { background: var(--accent-soft); }
+.fx-cal__link:disabled { opacity: 0.4; cursor: not-allowed; }
+.fx-cal__link.is-muted { color: var(--text-2); }
+.fx-cal__link.is-muted:hover { color: var(--danger); background: var(--danger-soft); }
+
 /* ---------- Layar sempit ---------- */
 @media (max-width: 991px) {
     .app-shell { grid-template-columns: 1fr; }
@@ -671,6 +858,8 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 }
 @media (max-width: 575px) {
     #plot { height: 340px; }
+    .route-head__truck, .route-head__truck .fx-select { min-width: 0; width: 100%; }
+    .route-head__tools { width: 100%; }
     .topbar { flex-wrap: wrap; align-items: flex-start; }
     .topbar > div:nth-child(2) { flex: 1 1 0; min-width: 0; }
     .topbar__actions { margin-left: 0; width: 100%; }
@@ -698,7 +887,7 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
     }
     html { color-scheme: light; }
     body { background: #fff; color: #000; }
-    .sidebar, .topbar__toggle, .topbar__actions, .skip-link, .page-progress, .page-loader, .confirm { display: none !important; }
+    .sidebar, .topbar__toggle, .topbar__actions, .skip-link, .page-progress, .page-loader, .confirm, .fx-pop { display: none !important; }
     .app-shell { display: block; }
     .content { padding: 0; }
     .topbar { position: static; border: 0; background: #fff; backdrop-filter: none; padding: 0 0 12px; min-height: 0; }

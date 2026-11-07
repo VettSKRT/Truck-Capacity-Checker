@@ -85,7 +85,7 @@
 
 {{-- MOQ per dealer --}}
 <section class="panel panel--flush">
-    <div class="panel__head p-3 pb-0 mb-2">
+    <div class="panel__head">
         <h2 class="panel__title">MOQ per dealer (volume Cargo Ready di jadwal ini)</h2>
         <a class="btn-soft btn-soft--sm" href="{{ route('dealers.index') }}">Atur MOQ</a>
     </div>
@@ -118,7 +118,7 @@
 
 {{-- Kloter tertaut --}}
 <section class="panel panel--flush">
-    <div class="panel__head p-3 pb-0 mb-2"><h2 class="panel__title">Kloter di jadwal ini ({{ $uploads->count() }})</h2></div>
+    <div class="panel__head"><h2 class="panel__title">Kloter di jadwal ini ({{ $uploads->count() }})</h2></div>
     @if ($uploads->isNotEmpty())
         <div class="table-wrap table-wrap--free table-wrap--flush">
             <table class="table-clean">
@@ -146,7 +146,7 @@
     @endif
 
     @if ($shipment->isActive())
-        <div class="p-3 {{ $uploads->isNotEmpty() ? 'border-top' : '' }}">
+        <div class="panel__body {{ $uploads->isNotEmpty() ? 'border-top' : '' }}">
             @if ($available->isEmpty())
                 <span class="text-muted">Tidak ada kloter lain yang menunggu jadwal kapal.</span>
             @else
@@ -168,7 +168,7 @@
 </section>
 
 @if ($shipment->notes)
-    <section class="panel"><h2 class="panel__title mb-1">Catatan</h2><p class="mb-0">{{ $shipment->notes }}</p></section>
+    <section class="panel"><h2 class="panel__title mb-2">Catatan</h2><p class="mb-0">{{ $shipment->notes }}</p></section>
 @endif
 
 <form method="POST" action="{{ route('schedule.destroy', $shipment) }}"

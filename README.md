@@ -18,6 +18,10 @@ Antarmuka memakai **tema gelap gaya dashboard** sesuai panduan desain di `dashbo
 - **Modal konfirmasi** (elemen `<dialog>`) untuk aksi yang berdampak besar: hapus kloter, area, atau jadwal; lepas kloter dari jadwal;
   simpan pengaturan jalur atau area; impor master barang. Cukup tambahkan `data-confirm="pesan"` (opsional `data-confirm-title`,
   `data-confirm-ok`, `data-confirm-variant` = `danger`/`warn`/`info`) pada `<form>` atau tombol submit.
+- **Kontrol form kustom** (`public/js/controls.js`): dropdown bergaya kaca gelap (kotak cari bila lebih dari 8 pilihan,
+  keterangan kecil lewat `<option data-label="..." data-hint="...">`), kalender untuk `input[type=date]` (Senin di depan,
+  tombol Hari ini/Hapus), dan kotak pilih file. Elemen asli tetap ada dan tetap dikirim bersama formulir; bisa dipakai penuh
+  dengan keyboard. Tambahkan `data-native` pada elemen yang ingin tetap memakai tampilan bawaan browser.
 - Semua gaya ada di `public/css/packing.css` (token warna di `:root`); warna tampilan 3D ada di `THEME` pada `public/js/packing.js`.
 
 ## Konsep utama

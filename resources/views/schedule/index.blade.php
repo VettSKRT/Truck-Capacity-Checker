@@ -17,7 +17,7 @@
 
 {{-- Jadwal kapal mendatang --}}
 <section class="panel panel--flush">
-    <div class="panel__head p-3 pb-0 mb-2"><h2 class="panel__title">Jadwal kapal mendatang</h2></div>
+    <div class="panel__head"><h2 class="panel__title">Jadwal kapal mendatang</h2></div>
     @if ($upcoming->isEmpty())
         <div class="empty-state">
             <i class="bi bi-calendar-plus" aria-hidden="true"></i>
@@ -75,7 +75,7 @@
 
 {{-- Kloter menunggu jadwal kapal --}}
 <section class="panel panel--flush">
-    <div class="panel__head p-3 pb-0 mb-2">
+    <div class="panel__head">
         <h2 class="panel__title">Kloter menunggu jadwal kapal ({{ $waiting->count() }})</h2>
     </div>
     @if ($waiting->isEmpty())
@@ -120,7 +120,7 @@
 
 {{-- Pengiriman harian --}}
 <section class="panel panel--flush">
-    <div class="panel__head p-3 pb-0 mb-2"><h2 class="panel__title">Pengiriman harian ({{ $daily->count() }})</h2></div>
+    <div class="panel__head"><h2 class="panel__title">Pengiriman harian ({{ $daily->count() }})</h2></div>
     @if ($daily->isEmpty())
         <div class="empty-state"><i class="bi bi-inbox" aria-hidden="true"></i> Tidak ada kloter harian yang tercatat.</div>
     @else
@@ -159,7 +159,7 @@
 {{-- Jadwal lampau atau dibatalkan --}}
 @if ($others->isNotEmpty())
     <section class="panel panel--flush">
-        <div class="panel__head p-3 pb-0 mb-2"><h2 class="panel__title">Jadwal lainnya</h2></div>
+        <div class="panel__head"><h2 class="panel__title">Jadwal lainnya</h2></div>
         <div class="table-wrap table-wrap--free table-wrap--flush">
             <table class="table-clean">
                 <thead><tr><th>Jadwal</th><th>Berangkat</th><th>Tujuan</th><th class="num">Kloter</th><th>Status</th><th></th></tr></thead>

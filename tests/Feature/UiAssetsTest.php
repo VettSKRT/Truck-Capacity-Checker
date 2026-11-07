@@ -40,6 +40,7 @@ class UiAssetsTest extends TestCase
                 ->assertDontSee('bootstrap.bundle', false)          // tab memakai public/js/app.js
                 ->assertDontSee('cdn.plot.ly/plotly-', false)        // Plotly tidak dipasang sebagai <script>
                 ->assertSee('js/app.js', false)
+                ->assertSee('js/controls.js', false)               // dropdown, kalender, dan pilih file kustom
                 ->assertSee('id="confirmDialog"', false)
                 ->assertSee('id="pageLoader"', false);
         }
@@ -48,7 +49,9 @@ class UiAssetsTest extends TestCase
         $this->get('/')->assertSee('data-area-chart', false)->assertSee('js/area-chart.js', false);
         // Halaman 3D memuat bundel gl3d dari packing.js saat dibutuhkan
         $this->assertStringContainsString('plotly-gl3d-2.35.2.min.js', file_get_contents(public_path('js/packing.js')));
-        $this->get("/riwayat/{$id}")->assertSee('id="plotLoader"', false)->assertSee('is-skeleton', false);
+        $this->get("/riwayat/{$id}")->assertSee('id="plotLoader"', false)->assertSee('is-skeleton', false)
+            ->assertSee('data-label="CDD (ban belakang double)"', false)       // opsi truk: nama + keterangan kapasitas
+            ->assertSee('m³ · 6.000 kg', false);
     }
 
     public function test_destructive_actions_use_the_confirmation_modal(): void
